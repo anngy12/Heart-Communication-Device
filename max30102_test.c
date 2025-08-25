@@ -9,8 +9,9 @@
 #define I2C_SCL_PIN 5
 #define MAX30102_ADDR 0x57
 
-// ===== Servo (SG92R) =====
-#define SERVO_PIN 15
+// ===== Servos =====
+#define SERVO_COUNT 4
+const uint SERVO_PINS[SERVO_COUNT] = {15, 16, 17, 18};
 #define MOSFET_PIN 14
 
 // Herzfrequenz-Berechnung
@@ -20,6 +21,7 @@
 #define MAX_VALID_BPM 180
 #define MIN_PEAK_INTERVAL_MS 500
 #define FINGER_ON_THRESHOLD 50000
+#define MOSFET_ON_TIME_MS 300
 
 absolute_time_t last_action_time = 0;
 bool action_in_progress = false;
@@ -31,9 +33,38 @@ typedef struct {
     int step;
     absolute_time_t last_update;
     int interval_ms;
+    uint slice;
 } ServoMotion;
 
-ServoMotion servo = {0, 0, 0, 0, 20};
+ServoMotion servos[SERVO_COUNT];
+
+// ===== Action Queue =====
+typedef struct {
+    int servo_id;
+    int target;
+    int interval_ms;
+    bool mosfet_on;
+} Action;
+
+#define ACTION_QUEUE_SIZE 10
+Action action_queue[ACTION_QUEUE_SIZE];
+int action_head = 0, action_tail = 0;
+
+// Queue-Handling
+bool action_queue_empty() {
+    return action_head == action_tail;
+}
+
+void enqueue_action(Action a) {
+    action_queue[action_tail] = a;
+    action_tail = (action_tail + 1) % ACTION_QUEUE_SIZE;
+}
+
+Action dequeue_action() {
+    Action a = action_queue[action_head];
+    action_head = (action_head + 1) % ACTION_QUEUE_SIZE;
+    return a;
+}
 
 // ===== MAX30102 Hilfsfunktionen =====
 uint8_t read_register(uint8_t reg) {
@@ -75,41 +106,74 @@ void max30102_init() {
 }
 
 // ========= Servo =========
-void set_servo_angle(uint angle) {
-    uint slice = pwm_gpio_to_slice_num(SERVO_PIN);
+void set_servo_angle(int servo_id, uint angle) {
+    ServoMotion *s = &servos[servo_id];
     float min = 0.5f, max = 2.5f;
     float pulse_ms = min + (max - min) * ((float)angle / 180.0f);
     uint32_t wrap = 20000;
-    pwm_set_wrap(slice, wrap);
+    pwm_set_wrap(s->slice, wrap);
     uint32_t level = (pulse_ms / 20.0f) * wrap;
-    pwm_set_gpio_level(SERVO_PIN, level);
+    pwm_set_gpio_level(SERVO_PINS[servo_id], level);
 }
 
-void servo_update() {
-    if (servo.current == servo.target) return;
-    int64_t dt = absolute_time_diff_us(servo.last_update, get_absolute_time()) / 1000;
-    if (dt >= servo.interval_ms) {
-        servo.last_update = get_absolute_time();
-        servo.current += servo.step;
-        set_servo_angle(servo.current);
-        if ((servo.step > 0 && servo.current >= servo.target) ||
-            (servo.step < 0 && servo.current <= servo.target)) {
-            servo.current = servo.target;
-            set_servo_angle(servo.current);
+void servo_update(int servo_id) {
+    ServoMotion *s = &servos[servo_id];
+    if (s->current == s->target) return;
+    int64_t dt = absolute_time_diff_us(s->last_update, get_absolute_time()) / 1000;
+    if (dt >= s->interval_ms) {
+        s->last_update = get_absolute_time();
+        s->current += s->step;
+        set_servo_angle(servo_id, s->current);
+        if ((s->step > 0 && s->current >= s->target) ||
+            (s->step < 0 && s->current <= s->target)) {
+            s->current = s->target;
+            set_servo_angle(servo_id, s->current);
         }
     }
 }
 
-void servo_move_to(int target, int interval_ms) {
-    servo.target = target;
-    servo.step = (target > servo.current) ? 1 : -1;
-    servo.interval_ms = interval_ms;
-    servo.last_update = get_absolute_time();
+void servo_update_all() {
+    for (int i = 0; i < SERVO_COUNT; i++) {
+        servo_update(i);
+    }
+}
+
+void servo_move_to(int servo_id, int target, int interval_ms) {
+    ServoMotion *s = &servos[servo_id];
+    s->target = target;
+    s->step = (target > s->current) ? 1 : -1;
+    s->interval_ms = interval_ms;
+    s->last_update = get_absolute_time();
+}
+
+// ===== Action Processing =====
+void process_actions() {
+    if (!action_queue_empty()) {
+        Action a = dequeue_action();
+        if (a.servo_id >= 0 && a.servo_id < SERVO_COUNT) {
+            servo_move_to(a.servo_id, a.target, a.interval_ms);
+        }
+        if (a.mosfet_on) {
+            gpio_put(MOSFET_PIN, 1);
+            last_action_time = get_absolute_time();
+            action_in_progress = true;
+        }
+    }
+    if (action_in_progress) {
+        int64_t dt = absolute_time_diff_us(last_action_time, get_absolute_time()) / 300;
+        if (dt > MOSFET_ON_TIME_MS) {
+            gpio_put(MOSFET_PIN, 0);
+            enqueue_action((Action){.servo_id=0, .target=0, .interval_ms=5, .mosfet_on=false});
+            enqueue_action((Action){.servo_id=1, .target=0, .interval_ms=5, .mosfet_on=false});
+            enqueue_action((Action){.servo_id=2, .target=0, .interval_ms=5, .mosfet_on=false});
+            enqueue_action((Action){.servo_id=3, .target=0, .interval_ms=5, .mosfet_on=false});
+            action_in_progress = false;
+        }
+    }
 }
 
 int main() {
     stdio_init_all();
-
     gpio_init(MOSFET_PIN);
     gpio_set_dir(MOSFET_PIN, GPIO_OUT);
 
@@ -122,11 +186,17 @@ int main() {
     busy_wait_ms(500);
 
     // ==== Servo Init ====
-    gpio_set_function(SERVO_PIN, GPIO_FUNC_PWM);
-    uint slice = pwm_gpio_to_slice_num(SERVO_PIN);
-    pwm_set_clkdiv(slice, 125.0f);
-    pwm_set_wrap(slice, 20000);
-    pwm_set_enabled(slice, true);
+    for (int i = 0; i < SERVO_COUNT; i++) {
+        gpio_set_function(SERVO_PINS[i], GPIO_FUNC_PWM);
+        uint slice = pwm_gpio_to_slice_num(SERVO_PINS[i]);
+        servos[i].slice = slice;
+        pwm_set_clkdiv(slice, 125.0f);
+        pwm_set_wrap(slice, 20000);
+        pwm_set_enabled(slice, true);
+        servos[i].current = 90;
+        servos[i].target = 90;
+        set_servo_angle(i, 90);
+    }
 
     // ==== MAX30102 check ====
     uint8_t part_id = read_register(0xFF);
@@ -169,11 +239,7 @@ int main() {
                     for (uint8_t i = 0; i < ir_count; i++) ir_sum += ir_buffer[i];
                     uint32_t ir_avg = ir_sum / ir_count;
 
-                    if (ir_avg < FINGER_ON_THRESHOLD) {
-                        printf("Kein Finger erkannt.\n");
-                        servo_move_to(180, 10);
-                        gpio_put(MOSFET_PIN, 0);
-                    } else {
+                    if (ir_avg >= FINGER_ON_THRESHOLD) {
                         bool curr_above_avg = ir > ir_avg;
                         if (curr_above_avg && !prev_above_avg) {
                             absolute_time_t now = get_absolute_time();
@@ -194,25 +260,17 @@ int main() {
 
                                     // === Aktionen ===
                                     if (!action_in_progress && bpm_avg > 100) {
-                                        servo_move_to(0, 5);
-                                        printf("Servo -> über 100\n");
+                                        enqueue_action((Action){.servo_id=0, .target=0, .interval_ms=5, .mosfet_on=false});
+                                        enqueue_action((Action){.servo_id=1, .target=180, .interval_ms=5, .mosfet_on=false});
+                                        enqueue_action((Action){.servo_id=2, .target=90, .interval_ms=5, .mosfet_on=false});
+                                        enqueue_action((Action){.servo_id=3, .target=0, .interval_ms=5, .mosfet_on=false});
                                     } else if (!action_in_progress && bpm_avg < 90) {
-                                        gpio_put(MOSFET_PIN, 1);
-                                        servo_move_to(0, 5);
-                                        servo_move_to(180, 5);
-                                        last_action_time = get_absolute_time();
-                                        action_in_progress = true;
-                                        printf("Servo -> unter 90\n");
-                                    } else if (action_in_progress) {
-                                        int64_t dt = absolute_time_diff_us(last_action_time, get_absolute_time()) / 300;
-                                        if (dt > 1000) {
-                                            gpio_put(MOSFET_PIN, 0);
-                                            servo_move_to(0, 5);
-                                            action_in_progress = false;
-                                        }
-                                    } else {
-                                        servo_move_to(0, 5);
-                                        printf("Servo -> zwischen 90 und 100\n");
+                                        enqueue_action((Action){.servo_id=0, .target=180, .interval_ms=5, .mosfet_on=true});
+                                        enqueue_action((Action){.servo_id=0, .target=0, .interval_ms=5, .mosfet_on=false});
+                                        enqueue_action((Action){.servo_id=1, .target=180, .interval_ms=5, .mosfet_on=false});
+                                        enqueue_action((Action){.servo_id=1, .target=0, .interval_ms=5, .mosfet_on=false});
+                                        enqueue_action((Action){.servo_id=2, .target=180, .interval_ms=5, .mosfet_on=false});
+                                        enqueue_action((Action){.servo_id=3, .target=180, .interval_ms=5, .mosfet_on=false});
                                     }
                                 }
                                 last_peak_time = now;
@@ -224,7 +282,8 @@ int main() {
             }
         }
 
-        // ==== Servo Update ohne blockieren ====
-        servo_update();
+        // ==== Aktionen und Servos verarbeiten ====
+        process_actions();
+        servo_update_all();
     }
 }
