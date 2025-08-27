@@ -1,20 +1,31 @@
 #include "pico/stdlib.h"
+#include "hardware/i2c.h"
+#include <stdio.h>
+
 #include "max30102.h"
 #include "servo.h"
-#include <stdio.h>
+#include "mosfet.h"
+
+// ---- BPM-Detektions-Parameter ----
+#define MOVING_AVG_SIZE      8
+#define BPM_AVG_SIZE         4
+#define MIN_VALID_BPM        60
+#define MAX_VALID_BPM        180
+#define MIN_PEAK_INTERVAL_MS 500
+#define FINGER_ON_THRESHOLD  50000  // IR-Durchschnittsschwelle
 
 int main() {
     stdio_init_all();
 
-    // ==== I2C Init ====
+    // I2C
     i2c_init(I2C_PORT, 400 * 1000);
     gpio_set_function(I2C_SDA_PIN, GPIO_FUNC_I2C);
     gpio_set_function(I2C_SCL_PIN, GPIO_FUNC_I2C);
     gpio_pull_up(I2C_SDA_PIN);
     gpio_pull_up(I2C_SCL_PIN);
-    busy_wait_ms(500);
+    busy_wait_ms(200);
 
-    // ==== Servo Init ====
+    // Servos
     servo_init_all();
     Servo servos[SERVO_COUNT];
     for (int i = 0; i < SERVO_COUNT; i++) {
@@ -24,32 +35,97 @@ int main() {
         set_servo_angle(servos[i].pin, 90);
     }
 
-    // ==== MAX30102 Init ====
-    uint8_t part_id = read_register(0xFF);
+    // MOSFETs
+    Mosfet mosfets[MOSFET_COUNT];
+    mosfet_init_all(mosfets);
+
+    // MAX30102
+    uint8_t part_id = max30102_read_reg(0xFF);
     printf("MAX30102 PART ID: 0x%02X\n", part_id);
     if (part_id != 0x15) {
         printf("Sensor nicht erkannt!\n");
-        while (true) tight_loop_contents();
+        while (1) tight_loop_contents();
     }
     max30102_init();
 
-    // ==== Loop ====
-    while (true) {
-        uint32_t ir = max30102_read_ir();
-        static uint32_t ir_avg = 0;
-        ir_avg = (ir_avg * 7 + ir) / 8; // einfacher gleitender Mittelwert
+    // Puffer
+    uint32_t ir_buffer[MOVING_AVG_SIZE] = {0};
+    uint8_t  ir_idx = 0, ir_count = 0;
 
-        if (max30102_finger_present(ir_avg)) {
-            //printf("[Sensor DBG] Finger erkannt, IR=%lu\n", ir_avg);
-            float bpm = 80.0f; // hier später BPM-Berechnung einsetzen
-            servo_update_oscillate(servos, bpm);
-        } else {
-            //printf("[Sensor DBG] Kein Finger erkannt, IR=%lu\n", ir_avg);
-            for (int i = 0; i < SERVO_COUNT; i++) {
-                set_servo_angle(servos[i].pin, 90);
+    float bpm_buffer[BPM_AVG_SIZE] = {0};
+    uint8_t bpm_idx = 0, bpm_count = 0;
+
+    bool prev_above_avg = false;
+    absolute_time_t last_peak_time = get_absolute_time();
+    absolute_time_t last_sensor_read = 0;
+
+    bool finger_on = false;
+    static bool mosfet_pulsed = false; // löst 1x aus, solange Finger drauf
+
+    while (true) {
+        // === Sensor regelmäßig lesen (alle ~20ms) ===
+        if (absolute_time_diff_us(last_sensor_read, get_absolute_time()) / 1000 > 20) {
+            last_sensor_read = get_absolute_time();
+
+            if (max30102_fifo_available() > 0) {
+                uint32_t ir = max30102_read_ir_sample();
+                if (ir > 0) {
+                    // Moving Average über IR
+                    ir_buffer[ir_idx] = ir;
+                    ir_idx = (ir_idx + 1) % MOVING_AVG_SIZE;
+                    if (ir_count < MOVING_AVG_SIZE) ir_count++;
+
+                    uint64_t sum = 0;
+                    for (uint8_t i = 0; i < ir_count; i++) sum += ir_buffer[i];
+                    uint32_t ir_avg = (ir_count ? (sum / ir_count) : 0);
+
+                    finger_on = (ir_avg >= FINGER_ON_THRESHOLD);
+
+                    // --- Finger-Handling + MOSFET-Oszillation ---
+                    if (!finger_on) {
+                        // Kein Finger -> Servos in Neutral, MOSFET-Oszillation stoppen
+                        for (int i = 0; i < SERVO_COUNT; i++) set_servo_angle(servos[i].pin, 90);
+                        for (int i = 0; i < MOSFET_COUNT; i++) mosfet_stop(mosfets, i);
+                        prev_above_avg = false; // Peak-Detektion zurücksetzen
+                    } else {
+                        // Finger erkannt -> MOSFETs dauerhaft oszillieren lassen (1s AN / 2s AUS)
+                        for (int i = 0; i < MOSFET_COUNT; i++) mosfet_start_oscillate(mosfets, i);
+
+                        // Peak-Detektion (aufsteigende Flanke über gleitendem Mittel)
+                        bool curr_above_avg = ir > ir_avg;
+                        if (curr_above_avg && !prev_above_avg) {
+                            absolute_time_t now = get_absolute_time();
+                            int32_t diff_ms = absolute_time_diff_us(last_peak_time, now) / 1000;
+                            if (diff_ms > MIN_PEAK_INTERVAL_MS) {
+                                float bpm_instant = 60000.0f / diff_ms;
+                                if (bpm_instant >= MIN_VALID_BPM && bpm_instant <= MAX_VALID_BPM) {
+                                    bpm_buffer[bpm_idx] = bpm_instant;
+                                    bpm_idx = (bpm_idx + 1) % BPM_AVG_SIZE;
+                                    if (bpm_count < BPM_AVG_SIZE) bpm_count++;
+
+                                    float sum_bpm = 0;
+                                    for (uint8_t i = 0; i < bpm_count; i++) sum_bpm += bpm_buffer[i];
+                                    float bpm_avg = sum_bpm / bpm_count;
+
+                                    printf("Herzfrequenz: %.1f BPM\n", bpm_avg);
+
+                                    // Servos abhängig von BPM oszillieren lassen
+                                    servo_update_oscillate(servos, bpm_avg);
+                                }
+                                last_peak_time = now;
+                            }
+                        }
+                        prev_above_avg = curr_above_avg;
+                    }
+
+                }
             }
         }
 
-        sleep_ms(20);
+        // MOSFET-State-Maschine stets updaten (Timer laufen weiter)
+        mosfet_update_all(mosfets);
+
+        // kleines Idle
+        sleep_ms(5);
     }
 }

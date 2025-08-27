@@ -14,8 +14,12 @@ typedef struct {
     absolute_time_t last_toggle;
 } Servo;
 
-void servo_init_all();
+void servo_init_all(void);
 void set_servo_angle(uint pin, float angle);
+
+/** Oszilliert alle Servos zeitversetzt (Delay ~300ms), Geschwindigkeit abhängig von bpm.
+ *  Wenn bpm außerhalb [60..180], wird 60 angenommen.
+ */
 void servo_update_oscillate(Servo *servos, float bpm);
 
 #endif

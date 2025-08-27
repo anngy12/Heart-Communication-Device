@@ -13,6 +13,7 @@ add_executable(max30102_test
     src/main.c
     src/servo.c
     src/max30102.c
+    src/mosfet.c
 )
 
 # <-- WICHTIG: Pfad zu deinen Headers
