@@ -28,31 +28,36 @@ set(PICO_BOARD pico2 CACHE STRING "Board type")
 # Pull in Raspberry Pi Pico SDK (must be before project)
 include(pico_sdk_import.cmake)
 
-project(max30102_test C CXX ASM)
+project(project C CXX ASM)
 
 # Initialise the Raspberry Pi Pico SDK
 pico_sdk_init()
 
 # Add executable. Default name is the project name, version 0.1
+add_executable(project main.c )
 
-add_executable(max30102_test max30102_test.c )
-
-pico_set_program_name(max30102_test "max30102_test")
-pico_set_program_version(max30102_test "0.1")
+pico_set_program_name(project "project")
+pico_set_program_version(project "0.1")
 
 # Modify the below lines to enable/disable output over UART/USB
-pico_enable_stdio_uart(max30102_test 0)
-pico_enable_stdio_usb(max30102_test 1)
+pico_enable_stdio_uart(project 0)
+pico_enable_stdio_usb(project 1)
 
 # Add the standard library to the build
-target_link_libraries(max30102_test pico_stdlib hardware_i2c hardware_pwm)
-
-
-
-# Add the standard include files to the build
-target_include_directories(max30102_test PRIVATE
-        ${CMAKE_CURRENT_LIST_DIR}
+target_link_libraries(project
+    pico_stdlib
+    hardware_i2c
+    hardware_pwm
 )
 
-pico_add_extra_outputs(max30102_test)
+# Add the standard include files to the build
+target_include_directories(project PRIVATE
+    ${CMAKE_CURRENT_LIST_DIR}
+    ${PICO_SDK_PATH}/stdlib
+    ${PICO_SDK_PATH}/include
+    ${PICO_SDK_PATH}/hardware/pwm
+    ${PICO_SDK_PATH}/hardware/i2c
 
+)
+
+pico_add_extra_outputs(project)
