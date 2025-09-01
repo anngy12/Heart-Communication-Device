@@ -89,7 +89,7 @@ int main() {
                         prev_above_avg = false; // Peak-Detektion zurücksetzen
                     } else {
                         // Finger erkannt -> MOSFETs dauerhaft oszillieren lassen (1s AN / 2s AUS)
-                        for (int i = 0; i < MOSFET_COUNT; i++) mosfet_start_oscillate(mosfets, i);
+                        for (int i = 0; i < MOSFET_COUNT; i++) mosfet_start_oscillate(mosfets, i, 5000, 1000);
 
                         // Peak-Detektion (aufsteigende Flanke über gleitendem Mittel)
                         bool curr_above_avg = ir > ir_avg;
