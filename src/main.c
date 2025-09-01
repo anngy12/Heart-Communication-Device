@@ -6,6 +6,8 @@
 #include "servo.h"
 #include "mosfet.h"
 
+#include <math.h>
+
 // ---- BPM-Detektions-Parameter ----
 #define MOVING_AVG_SIZE      8
 #define BPM_AVG_SIZE         4
@@ -16,6 +18,8 @@
 
 int main() {
     stdio_init_all();
+    float bpm_target = 90.0f;  // Default, bis erste Messung kommt
+    bool finger_on = false;
 
     // I2C
     i2c_init(I2C_PORT, 400 * 1000);
@@ -30,10 +34,26 @@ int main() {
     Servo servos[SERVO_COUNT];
     for (int i = 0; i < SERVO_COUNT; i++) {
         servos[i].pin = SERVO_PINS[i];
-        servos[i].angle = 90;
-        servos[i].last_toggle = get_absolute_time();
-        set_servo_angle(servos[i].pin, 90);
+        servos[i].enabled = false;
+        servos[i].amplitude = 90.0f;   // volle Auslenkung
+        servos[i].bpm = 90.0f;         // Default
+        servos[i].phase = 0.0f;
+        servos[i].last_ts = get_absolute_time();
+        set_servo_angle(servos[i].pin, 90.0f);
     }
+
+    float phase_offsets[SERVO_COUNT] = {0.00f, 0.25f, 0.50f, 0.75f};
+    for (int i = 0; i < SERVO_COUNT; i++) {
+    servos[i].phase = fmodf(phase_offsets[i], 1.0f);
+}
+
+
+    // nach der Schleife, die servos[i] füllt:
+    for (int i = 0; i < SERVO_COUNT; i++) {
+    servos[i].speed_mul = 1.0f;   // Default (1 Zyklus pro Schlag)
+}
+
+    servo_set_speed_multiplier(servos, 0.25f);
 
     // MOSFETs
     Mosfet mosfets[MOSFET_COUNT];
@@ -59,9 +79,6 @@ int main() {
     absolute_time_t last_peak_time = get_absolute_time();
     absolute_time_t last_sensor_read = 0;
 
-    bool finger_on = false;
-    static bool mosfet_pulsed = false; // löst 1x aus, solange Finger drauf
-
     while (true) {
         // === Sensor regelmäßig lesen (alle ~20ms) ===
         if (absolute_time_diff_us(last_sensor_read, get_absolute_time()) / 1000 > 20) {
@@ -81,17 +98,21 @@ int main() {
 
                     finger_on = (ir_avg >= FINGER_ON_THRESHOLD);
 
-                    // --- Finger-Handling + MOSFET-Oszillation ---
                     if (!finger_on) {
-                        // Kein Finger -> Servos in Neutral, MOSFET-Oszillation stoppen
-                        for (int i = 0; i < SERVO_COUNT; i++) set_servo_angle(servos[i].pin, 90);
+                        // Servos sauber stoppen & zentrieren:
+                        servo_center_all(servos);
+
+                        // MOSFETs stoppen
                         for (int i = 0; i < MOSFET_COUNT; i++) mosfet_stop(mosfets, i);
+
                         prev_above_avg = false; // Peak-Detektion zurücksetzen
                     } else {
-                        // Finger erkannt -> MOSFETs dauerhaft oszillieren lassen (1s AN / 2s AUS)
-                        for (int i = 0; i < MOSFET_COUNT; i++) mosfet_start_oscillate(mosfets, i, 5000, 1000);
 
-                        // Peak-Detektion (aufsteigende Flanke über gleitendem Mittel)
+                        // MOSFETs: 5000 ms AN / 500 ms AUS
+                        for (int i = 0; i < MOSFET_COUNT; i++)
+                            mosfet_start_oscillate(mosfets, i, 5000, 500);
+
+                        // Peak-Detektion
                         bool curr_above_avg = ir > ir_avg;
                         if (curr_above_avg && !prev_above_avg) {
                             absolute_time_t now = get_absolute_time();
@@ -109,23 +130,25 @@ int main() {
 
                                     printf("Herzfrequenz: %.1f BPM\n", bpm_avg);
 
-                                    // Servos abhängig von BPM oszillieren lassen
-                                    servo_update_oscillate(servos, bpm_avg);
+                                    // Setzt nur das Zieltempo; das eigentliche Schalten macht servo_tick()
+                                    servo_set_bpm(servos, bpm_avg);
+                                    bpm_target = bpm_avg; // optional behalten, falls ihr es anderswo braucht
                                 }
                                 last_peak_time = now;
                             }
                         }
                         prev_above_avg = curr_above_avg;
                     }
-
                 }
             }
         }
 
-        // MOSFET-State-Maschine stets updaten (Timer laufen weiter)
+        // MOSFET-State-Maschine stets updaten
         mosfet_update_all(mosfets);
 
-        // kleines Idle
+        // *** WICHTIG: Servos immer ticken lassen, völlig unabhängig vom Sensor/MOSFET ***
+        servo_tick(servos);
+
         sleep_ms(5);
     }
 }
