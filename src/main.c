@@ -42,18 +42,13 @@ int main() {
         set_servo_angle(servos[i].pin, 90.0f);
     }
 
-    float phase_offsets[SERVO_COUNT] = {0.00f, 0.25f, 0.50f, 0.75f};
-    for (int i = 0; i < SERVO_COUNT; i++) {
-    servos[i].phase = fmodf(phase_offsets[i], 1.0f);
-}
-
-
     // nach der Schleife, die servos[i] füllt:
     for (int i = 0; i < SERVO_COUNT; i++) {
     servos[i].speed_mul = 1.0f;   // Default (1 Zyklus pro Schlag)
 }
 
     servo_set_speed_multiplier(servos, 0.25f);
+    servo_set_uniform_phase_step(servos, 0.125f); // 45° Versatz pro Kanal             
 
     // MOSFETs
     Mosfet mosfets[MOSFET_COUNT];

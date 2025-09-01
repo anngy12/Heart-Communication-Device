@@ -1,10 +1,12 @@
 #include "servo.h"
 #include <math.h>
 
-const uint SERVO_PINS[SERVO_COUNT] = {15, 16, 17, 18};
+#ifndef M_PI
+#define M_PI 3.14159265358979323846
+#endif
 
-// 50 Hz Servo: 20 ms Periode -> wir nehmen 1 MHz PWM-Taktbasis (125MHz/125)
-static const uint32_t SERVO_WRAP = 20000;
+const uint SERVO_PINS[SERVO_COUNT] = {15, 16, 17, 18};
+static const uint32_t SERVO_WRAP = 20000; // 50 Hz bei 1 MHz PWM-Basis
 
 static inline float clampf(float v, float lo, float hi) {
     if (v < lo) return lo;
@@ -19,86 +21,30 @@ void servo_init_all(void) {
         pwm_set_clkdiv(slice, 125.0f); // 125 MHz / 125 = 1 MHz
         pwm_set_wrap(slice, SERVO_WRAP);
         pwm_set_enabled(slice, true);
-
-        // Start in Mitte
         set_servo_angle(SERVO_PINS[i], 90.0f);
     }
 }
 
 void set_servo_angle(uint pin, float angle) {
     angle = clampf(angle, 0.0f, 180.0f);
-
-    // 0.5ms..2.5ms auf 20ms => 2.5%..12.5%
-    const float min_ms = 0.5f;
-    const float max_ms = 2.5f;
+    const float min_ms = 0.5f, max_ms = 2.5f;
     float pulse_ms = min_ms + (max_ms - min_ms) * (angle / 180.0f);
     uint32_t level = (uint32_t)((pulse_ms / 20.0f) * SERVO_WRAP);
     pwm_set_gpio_level(pin, level);
 }
 
 void servo_set_bpm(Servo *servos, float bpm) {
-    // sinnvolle Grenzen
     bpm = clampf(bpm, 40.0f, 200.0f);
-
-    // Setze neues Tempo und aktiviere alle Servos
     absolute_time_t now = get_absolute_time();
     for (int i = 0; i < SERVO_COUNT; i++) {
         servos[i].bpm = bpm;
         if (!servos[i].enabled) {
-            servos[i].enabled = true;
-            servos[i].last_ts = now;
-            //servos[i].phase = 0.0f;    
-            if (servos[i].amplitude <= 0.0f) servos[i].amplitude = 90.0f;      // volle Auslenkung bei 90.0f 0..180
-            if (servos[i].speed_mul <= 0.0f) servos[i].speed_mul = 0.5f; // NEU
+            servos[i].enabled   = true;
+            servos[i].last_ts   = now;
+            if (servos[i].amplitude <= 0.0f) servos[i].amplitude = 90.0f;
+            if (servos[i].speed_mul <= 0.0f) servos[i].speed_mul = 1.0f; // Default
+            // phase & phase_offset NICHT anfassen -> Phasing bleibt erhalten
         }
-    }
-}
-
-void servo_tick(Servo *servos) {
-    absolute_time_t now = get_absolute_time();
-
-    for (int i = 0; i < SERVO_COUNT; i++) {
-        if (!servos[i].enabled) continue;
-
-        // Zeitdelta seit letztem Update in Sekunden (double-Präzision)
-        int64_t dt_us = absolute_time_diff_us(servos[i].last_ts, now);
-        if (dt_us < 0) dt_us = 0; // falls Clock zurückspringt
-        servos[i].last_ts = now;
-
-        double dt_s = dt_us / 1e6;
-
-        // Periodendauer eines Vollzyklus (0→180→0) in Sekunden
-        // f = (bpm * speed_mul) / 60  =>  T = 60 / (bpm * speed_mul)
-        float mul = (servos[i].speed_mul > 0.0f) ? servos[i].speed_mul : 1.0f;
-        double period_s = 60.0 / ((double)servos[i].bpm * (double)mul);
-        if (period_s < 0.05) period_s = 0.05; // Schutz
-
-
-         // Phase fortschreiben: Δphase = dt / T
-        double dphi = dt_s / period_s;
-        double phase = servos[i].phase + dphi;
-
-        // mod 1.0 (robust)
-        phase -= floor(phase);
-
-        servos[i].phase = (float)phase;
-
-        // Sanfte Sinusbewegung um 90°
-        // angle = 90 + A * sin(2π * phase)
-        double angle = 90.0 + servos[i].amplitude * sin(2.0 * 3.1415 * phase);
-
-        set_servo_angle(servos[i].pin, (float)angle);
-    }
-}
-
-void servo_center_all(Servo *servos) {
-    for (int i = 0; i < SERVO_COUNT; i++) {
-        servos[i].enabled = false;
-        servos[i].bpm = 90.0f;
-        servos[i].amplitude = 90.0f;
-        servos[i].phase = 0.0f;
-        servos[i].last_ts = get_absolute_time();
-        set_servo_angle(servos[i].pin, 90.0f);
     }
 }
 
@@ -111,3 +57,59 @@ void servo_set_speed_multiplier(Servo *servos, float mul) {
     }
 }
 
+void servo_tick(Servo *servos) {
+    absolute_time_t now = get_absolute_time();
+    for (int i = 0; i < SERVO_COUNT; i++) {
+        if (!servos[i].enabled) continue;
+
+        int64_t dt_us = absolute_time_diff_us(servos[i].last_ts, now);
+        if (dt_us < 0) dt_us = 0;
+        servos[i].last_ts = now;
+
+        double dt_s = dt_us / 1e6;
+
+        // *** HIER: speed_mul berücksichtigt ***
+        float bpm   = clampf(servos[i].bpm, 40.0f, 200.0f);
+        float mul   = (servos[i].speed_mul > 0.0f) ? servos[i].speed_mul : 1.0f;
+        double period_s = 60.0 / ((double)bpm * (double)mul); // T = 60/(BPM*mul)
+        if (period_s < 0.05) period_s = 0.05;
+
+        // Phase 0..1 fortschreiben
+        double phase = servos[i].phase + dt_s / period_s;
+        phase -= floor(phase);
+        servos[i].phase = (float)phase;
+
+        // fester Offset addieren (0..1)
+        double phase_total = phase + (double)servos[i].phase_offset;
+        phase_total -= floor(phase_total);
+
+        // glatte Sinusbewegung
+        double angle = 90.0 + servos[i].amplitude * sin(2.0 * M_PI * phase_total);
+        set_servo_angle(servos[i].pin, (float)angle);
+    }
+}
+
+void servo_center_all(Servo *servos) {
+    for (int i = 0; i < SERVO_COUNT; i++) {
+        servos[i].enabled = false;  // stoppt Bewegung
+        set_servo_angle(servos[i].pin, 90.0f);
+        // phase / phase_offset unverändert lassen
+    }
+}
+
+void servo_set_uniform_phase_step(Servo *servos, float step_0to1) {
+    if (step_0to1 <= 0.0f) step_0to1 = 0.25f;
+    for (int i = 0; i < SERVO_COUNT; i++) {
+        double ph = fmod((double)step_0to1 * i, 1.0);
+        servos[i].phase_offset = (float)ph;
+    }
+}
+
+void servo_set_phase_offsets(Servo *servos, const float *offsets_0to1) {
+    for (int i = 0; i < SERVO_COUNT; i++) {
+        float ph = offsets_0to1[i];
+        while (ph < 0.0f)  ph += 1.0f;
+        while (ph >= 1.0f) ph -= 1.0f;
+        servos[i].phase_offset = ph;
+    }
+}
