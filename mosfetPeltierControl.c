@@ -9,6 +9,7 @@
 #define MOSFET3_PIN 17
 #define MOSFET4_PIN 18
 
+
 void heat_peltier(int duration){
 
     // init the GPIO pins
@@ -40,4 +41,11 @@ void heat_peltier(int duration){
     // turn those two off
     gpio_put(MOSFET3_PIN, 0);
     gpio_put(MOSFET4_PIN, 0);
+}
+
+// heat the peltier if there is a heartbeat detected
+void heat_if_heartbeat_detected(int bpm) {
+    if (bpm > 0) {
+        heat_peltier(1000);  
+    }
 }
