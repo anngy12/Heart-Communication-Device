@@ -54,6 +54,7 @@ target_link_libraries(project
 target_include_directories(project PRIVATE
     ${CMAKE_CURRENT_LIST_DIR}
     ${PICO_SDK_PATH}/stdlib
+    ${PICO_SDK_PATH}/stdint
     ${PICO_SDK_PATH}/include
     ${PICO_SDK_PATH}/hardware/pwm
     ${PICO_SDK_PATH}/hardware/i2c

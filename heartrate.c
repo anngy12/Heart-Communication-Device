@@ -55,3 +55,15 @@ int detect_heartbeat(uint32_t ir_value, uint32_t current_time_ms) {
     return beat_detected;
 }
 
+void printBPM(){
+    uint32_t red, ir;
+        if (max30102_read_sample(&red, &ir)) {
+            uint32_t now = to_ms_since_boot(get_absolute_time());
+
+            if (detect_heartbeat(ir, now)) {
+                int bpm_smoothed = smooth_bpm(bpm);
+                printf("BPM (raw): %d | BPM (avg): %d\n", bpm, bpm_smoothed);
+            }
+        }
+        sleep_ms(10);
+}
