@@ -23,7 +23,7 @@ if (EXISTS ${picoVscode})
     include(${picoVscode})
 endif()
 # ====================================================================================
-set(PICO_BOARD pico2 CACHE STRING "Board type")
+set(PICO_BOARD pico2_w CACHE STRING "Board type")
 
 # Pull in Raspberry Pi Pico SDK (must be before project)
 include(pico_sdk_import.cmake)
@@ -48,6 +48,7 @@ target_link_libraries(project
     pico_stdlib
     hardware_i2c
     hardware_pwm
+    pico_cyw43_arch_lwip_threadsafe_background
 )
 
 # Add the standard include files to the build
@@ -58,7 +59,8 @@ target_include_directories(project PRIVATE
     ${PICO_SDK_PATH}/include
     ${PICO_SDK_PATH}/hardware/pwm
     ${PICO_SDK_PATH}/hardware/i2c
-    ${PICO_SDK_PATH}/hardware/gpio)
+    ${PICO_SDK_PATH}/hardware/gpio
+)
 
 pico_add_extra_outputs(project)
 
