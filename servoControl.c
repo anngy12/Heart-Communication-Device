@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <stdint.h>
 #include "hardware/pwm.h"
 #include "hardware/gpio.h"
 
