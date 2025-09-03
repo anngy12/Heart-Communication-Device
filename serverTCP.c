@@ -50,5 +50,6 @@ int main() {
     while (true) {
         cyw43_arch_poll(); // WLAN stack
         sleep_ms(10);
+        printf("Warte auf Verbindungen...\n");
     }
 }
