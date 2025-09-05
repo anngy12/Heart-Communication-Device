@@ -2,9 +2,10 @@
 #include "pico/cyw43_arch.h"
 #include "lwip/tcp.h"
 
-#define WIFI_SSID "PicoAP"
-#define WIFI_PASS "12345678"
+#define WIFI_SSID "BPM"
+#define WIFI_PASS "swag"
 
+// receive messages from client
 static err_t tcp_server_recv(void *arg, struct tcp_pcb *tpcb,
                              struct pbuf *p, err_t err) {
     if (!p) {
@@ -15,14 +16,19 @@ static err_t tcp_server_recv(void *arg, struct tcp_pcb *tpcb,
     // Empfangene Daten ausgeben
     printf("Server empfing: %.*s\n", p->len, (char *)p->payload);
 
-    // Antwort zurücksenden
-    char *reply = "Hallo vom Server!";
-    tcp_write(tpcb, reply, strlen(reply), TCP_WRITE_FLAG_COPY);
-
     tcp_recved(tpcb, p->len);
     pbuf_free(p);
     return ERR_OK;
 }
+
+
+// send messages to client
+static void tcp_server_send(void *arg, struct tcp_pcb *tpcb, u16_t len, int mode) {
+    tcp_write(tpcb, mode, 18, TCP_WRITE_FLAG_COPY);
+    tcp_output(tpcb);
+    printf("Server sendet: Modus %d\n", mode);
+}
+
 
 static err_t tcp_server_accept(void *arg, struct tcp_pcb *newpcb, err_t err) {
     printf("Client verbunden!\n");
@@ -30,7 +36,7 @@ static err_t tcp_server_accept(void *arg, struct tcp_pcb *newpcb, err_t err) {
     return ERR_OK;
 }
 
-int main() {
+void init_wifi(){
     stdio_init_all();
 
     if (cyw43_arch_init()) {
@@ -46,10 +52,9 @@ int main() {
     tcp_bind(pcb, IP_ANY_TYPE, 4242);   // Port 4242
     pcb = tcp_listen(pcb);
     tcp_accept(pcb, tcp_server_accept);
+}
 
-    while (true) {
-        cyw43_arch_poll(); // WLAN stack
-        sleep_ms(10);
-        printf("Warte auf Verbindungen...\n");
-    }
+void poll_wifi(){
+    cyw43_arch_poll();
+    sleep_ms(10);
 }

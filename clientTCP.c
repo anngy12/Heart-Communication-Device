@@ -15,8 +15,8 @@
 
 #define TEST_TCP_SERVER_IP "192.168.4.1"
 
-#define WIFI_SSID "PicoAP"
-#define WIFI_PASSWORD "12345678"
+#define WIFI_SSID "BPM"
+#define WIFI_PASSWORD "swag"
 
 #define TCP_PORT 4242
 #define DEBUG_printf printf

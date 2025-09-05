@@ -11,6 +11,7 @@ void move_servos_based_on_bpm(int bpm) {
         servo_set_angle(SERVO_2, 45);
         servo_set_angle(SERVO_3, 45);
         servo_set_angle(SERVO_4, 45);
+        sleep_ms(1000);
         servo_set_angle(SERVO_1, 0);
         servo_set_angle(SERVO_2, 0);
         servo_set_angle(SERVO_3, 0);
@@ -20,6 +21,7 @@ void move_servos_based_on_bpm(int bpm) {
         servo_set_angle(SERVO_2, 90);
         servo_set_angle(SERVO_3, 90);
         servo_set_angle(SERVO_4, 90);
+        sleep_ms(1000);
         servo_set_angle(SERVO_1, 0);
         servo_set_angle(SERVO_2, 0);
         servo_set_angle(SERVO_3, 0);
@@ -29,6 +31,7 @@ void move_servos_based_on_bpm(int bpm) {
         servo_set_angle(SERVO_2, 135);
         servo_set_angle(SERVO_3, 135);
         servo_set_angle(SERVO_4, 135);
+        sleep_ms(1000);
         servo_set_angle(SERVO_1, 0);
         servo_set_angle(SERVO_2, 0);
         servo_set_angle(SERVO_3, 0);
@@ -38,6 +41,7 @@ void move_servos_based_on_bpm(int bpm) {
         servo_set_angle(SERVO_2, 180);
         servo_set_angle(SERVO_3, 180);
         servo_set_angle(SERVO_4, 180);
+        sleep_ms(1000);
         servo_set_angle(SERVO_1, 0);
         servo_set_angle(SERVO_2, 0);
         servo_set_angle(SERVO_3, 0);
