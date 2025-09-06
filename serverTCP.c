@@ -3,7 +3,13 @@
 #include "lwip/tcp.h"
 
 #define WIFI_SSID "BPM"
-#define WIFI_PASS "swag"
+#define WIFI_PASS "123456789"
+
+typedef struct {
+    struct tcp_pcb *pcb;
+    bool connected;
+} tcp_server_t;
+
 
 // receive messages from client
 static err_t tcp_server_recv(void *arg, struct tcp_pcb *tpcb,
@@ -24,19 +30,19 @@ static err_t tcp_server_recv(void *arg, struct tcp_pcb *tpcb,
 
 // send messages to client
 static void tcp_server_send(void *arg, struct tcp_pcb *tpcb, u16_t len, int mode) {
-    tcp_write(tpcb, mode, 18, TCP_WRITE_FLAG_COPY);
+    tcp_write(tpcb, "c", 18, TCP_WRITE_FLAG_COPY);
     tcp_output(tpcb);
     printf("Server sendet: Modus %d\n", mode);
 }
 
-
+// accept connection from client
 static err_t tcp_server_accept(void *arg, struct tcp_pcb *newpcb, err_t err) {
     printf("Client verbunden!\n");
     tcp_recv(newpcb, tcp_server_recv);
     return ERR_OK;
 }
 
-void init_wifi(){
+int init_wifi(){
     stdio_init_all();
 
     if (cyw43_arch_init()) {
