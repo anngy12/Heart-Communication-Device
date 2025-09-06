@@ -13,6 +13,9 @@ typedef struct {
     bool connected;
 } tcp_client_t;
 
+tcp_client_t client = {0};
+
+
 // Empfangs-Callback
 static err_t tcp_client_recv(void *arg, struct tcp_pcb *tpcb, struct pbuf *p, err_t err) {
     if (!p) {
@@ -58,6 +61,7 @@ void tcp_client_send(tcp_client_t *client, const char *msg) {
     if (client->connected) {
         cyw43_arch_lwip_begin();
         tcp_write(client->pcb, msg, strlen(msg), TCP_WRITE_FLAG_COPY);
+        tcp_output(client->pcb);
         cyw43_arch_lwip_end();
         printf("Gesendet: %s\n", msg);
     }
@@ -93,14 +97,14 @@ int init_client_wifi(){
         return -1;
     }
     printf("WiFi verbunden\n");
+    tcp_client_open(&client);
+
 }
 
-tcp_client_t client = {0};
 
 // function for tcp connection
 bool poll_client_wifi(tcp_client_t *client){
     cyw43_arch_poll();
-    tcp_client_open(client);
 
     while (!client->connected) {
         cyw43_arch_poll();       

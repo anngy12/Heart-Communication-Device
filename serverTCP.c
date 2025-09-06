@@ -10,12 +10,15 @@ typedef struct {
     bool connected;
 } tcp_server_t;
 
+tcp_server_t server = {0};
 
 // receive messages from client
 static err_t tcp_server_recv(void *arg, struct tcp_pcb *tpcb,
                              struct pbuf *p, err_t err) {
     if (!p) {
         tcp_close(tpcb);
+        server.connected = false;
+        printf("Client hat Verbindung geschlossen\n");
         return ERR_OK;
     }
 
@@ -30,14 +33,22 @@ static err_t tcp_server_recv(void *arg, struct tcp_pcb *tpcb,
 
 // send messages to client
 static void tcp_server_send(void *arg, struct tcp_pcb *tpcb, u16_t len, int mode) {
+    cyw43_arch_lwip_begin();
     tcp_write(tpcb, "c", 18, TCP_WRITE_FLAG_COPY);
     tcp_output(tpcb);
+    cyw43_arch_lwip_end();
     printf("Server sendet: Modus %d\n", mode);
 }
 
 // accept connection from client
 static err_t tcp_server_accept(void *arg, struct tcp_pcb *newpcb, err_t err) {
+    if(server.connected) {
+        tcp_close(newpcb);
+        return ERR_OK;
+    }
     printf("Client verbunden!\n");
+    server.connected = true;
+    server.pcb = newpcb;
     tcp_recv(newpcb, tcp_server_recv);
     return ERR_OK;
 }

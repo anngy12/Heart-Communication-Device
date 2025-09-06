@@ -7,19 +7,20 @@
 int main() {
     sleep_ms(2000); // Warten, bis die serielle Verbindung hergestellt ist
      
-    /*
-    init_wifi();
+    
+    /* init_wifi();
 
     printf("Server läuft...\n");
 
     while (true) {
-        // TCP/WLAN-Stack verarbeiten
         poll_wifi();
+        sleep_ms(10);
     }
-        */
+     */
+    
         
     init_client_wifi();
-
+    
     while (true) {
         poll_client_wifi(&client);
         sleep_ms(10);
@@ -33,4 +34,5 @@ int main() {
     }
 
     return 0;
+    
   }
