@@ -51,6 +51,8 @@
         "type_traits": "c",
         "utility": "c",
         "variant": "c",
-        "cyw43_arch.h": "c"
+        "cyw43_arch.h": "c",
+        "pwm.h": "c",
+        "servocontrol.h": "c"
     }
 }

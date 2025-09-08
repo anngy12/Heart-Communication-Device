@@ -34,7 +34,15 @@ project(project C CXX ASM)
 pico_sdk_init()
 
 # Add executable. Default name is the project name, version 0.1
-add_executable(project main.c )
+add_executable(project 
+main.c 
+clientTCP.c 
+heartrate.c 
+max_init.c
+mosfetPeltierControl.c
+servoControl.c
+serverTCP.c
+)
 
 pico_set_program_name(project "project")
 pico_set_program_version(project "0.1")
@@ -56,10 +64,11 @@ target_include_directories(project PRIVATE
     ${CMAKE_CURRENT_LIST_DIR}
     ${PICO_SDK_PATH}/stdlib
     ${PICO_SDK_PATH}/stdint
-    ${PICO_SDK_PATH}/include
+    ${CMAKE_CURRENT_LIST_DIR}/include
     ${PICO_SDK_PATH}/hardware/pwm
     ${PICO_SDK_PATH}/hardware/i2c
     ${PICO_SDK_PATH}/hardware/gpio
+
 )
 
 

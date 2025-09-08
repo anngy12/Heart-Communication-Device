@@ -1,8 +1,4 @@
-#include <stdio.h>
-#include "servoControl.c"
-#include "pico/stdlib.h"
-#include "clientTCP.c"
-// #include "serverTCP.c"
+#include "include/clientTCP.h"
 
 int main() {
     sleep_ms(2000); // Warten, bis die serielle Verbindung hergestellt ist

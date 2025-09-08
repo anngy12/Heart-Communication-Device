@@ -1,20 +1,4 @@
-#include <stdio.h>
-#include <stdint.h>
-
-#define MAX30102_ADDR 0x57
-#define I2C_PORT i2c0
-#define PIN_SDA  4
-#define PIN_SCL  5
-
-// Register des Sensors 
-#define REG_MODE_CONFIG   0x09
-#define REG_SPO2_CONFIG   0x0A
-#define REG_LED1_PA       0x0C
-#define REG_LED2_PA       0x0D
-#define REG_FIFO_WR_PTR   0x04
-#define REG_OVF_COUNTER   0x05
-#define REG_FIFO_RD_PTR   0x06
-#define REG_FIFO_DATA     0x07
+#include "include/max_init.h"
 
 // Funktion fürs Schreiben in Register
 void max30102_write(uint8_t reg, uint8_t value) {

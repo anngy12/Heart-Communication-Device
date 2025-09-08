@@ -1,13 +1,4 @@
-#include <stdio.h>
-#include <stdint.h>
-#include "hardware/pwm.h"
-#include "hardware/gpio.h"
-
-#define SERVO_1 14
-#define SERVO_2 13
-#define SERVO_3 12
-#define SERVO_4 11
-
+#include "include/servoControl.h"
 
 void servo_init() {
     gpio_set_function(SERVO_1, GPIO_FUNC_PWM);

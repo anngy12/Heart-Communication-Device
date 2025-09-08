@@ -1,15 +1,4 @@
-#include <stdio.h>
-#include <stdint.h>
-#include "pico/stdlib.h"
-#include "hardware/i2c.h"
-#include "max_init.c"
-
-#define SAMPLE_RATE 100  // Hz
-#define MIN_BPM 40
-#define MAX_BPM 180
-#define MIN_INTERVAL (60000 / MAX_BPM) 
-#define MAX_INTERVAL (60000 / MIN_BPM)
-#define AVG_WINDOW 5 // Anzahl der Messungen pro Durchschnittsberechnung
+#include "include/heartrate.h"
 
 int bpm_buffer[AVG_WINDOW] = {0};
 int bpm_index = 0;

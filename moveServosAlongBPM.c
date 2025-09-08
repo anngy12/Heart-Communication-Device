@@ -1,8 +1,4 @@
-#include <stdio.h>
-#include "pico/stdlib.h"
-#include "hardware/pwm.h"
-#include "heartrate.c"
-#include "servoControl.c"
+#include "include/moveServosAlongBPM.h"
 
 // move servos based on bpm 
 void move_servos_based_on_bpm(int bpm) {

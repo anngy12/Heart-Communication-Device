@@ -1,14 +1,4 @@
-#include "pico/stdlib.h"
-#include "pico/cyw43_arch.h"
-#include "lwip/tcp.h"
-
-#define WIFI_SSID "BPM"
-#define WIFI_PASS "123456789"
-
-typedef struct {
-    struct tcp_pcb *pcb;
-    bool connected;
-} tcp_server_t;
+#include "include/serverTCP.h"
 
 tcp_server_t server = {0};
 
