@@ -31,7 +31,7 @@ static absolute_time_t last_sensor_read;
 
 static bool init_done = false;
 
-void exe_servo_mosfet(Servo servos[], Mosfet mosfets[])
+void servo_mosfet(Servo servos[], Mosfet mosfets[])
 {
     if (!init_done) {
         last_peak_time = get_absolute_time();

@@ -5,6 +5,7 @@
 #include "max30102.h"
 #include "servo.h"
 #include "mosfet.h"
+#include "exe_servo_mosfet.h"
 
 #include <math.h>
 
@@ -75,7 +76,7 @@ int main() {
     absolute_time_t last_sensor_read = 0;
 
     while (true) {
-        exe_servo_mosfet(servos, mosfets);
+        servo_mosfet(servos, mosfets);
         sleep_ms(5);
     }
 }

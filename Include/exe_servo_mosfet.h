@@ -4,4 +4,4 @@
 
 // Führt genau einen Schleifendurchlauf der App-Logik aus.
 // Erwartet initialisierte Servos, MOSFETs sowie den MAX30102.
-void app_loop_step(Servo servos[], Mosfet mosfets[]);
+void servo_mosfet(Servo servos[], Mosfet mosfets[]);

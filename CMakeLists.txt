@@ -14,6 +14,7 @@ add_executable(Heart-Communication-Device
     src/servo.c
     src/max30102.c
     src/mosfet.c
+    src/exe_servo_mosfet.c
 )
 
 # <-- WICHTIG: Pfad zu deinen Headers
