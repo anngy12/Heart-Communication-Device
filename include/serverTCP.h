@@ -4,6 +4,7 @@
 #include "pico/stdlib.h"
 #include "pico/cyw43_arch.h"
 #include "lwip/tcp.h"
+#include "include/heartrate.h"
 
 #define WIFI_SSID "BPM"
 #define WIFI_PASS "123456789"
@@ -14,6 +15,8 @@ typedef struct {
 } tcp_server_t;
 
 extern tcp_server_t server;
+extern char recv_buf[64];
+extern int recv_pos;
 
 int init_wifi();
 

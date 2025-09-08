@@ -7,6 +7,7 @@
 #include "pico/cyw43_arch.h"
 #include "lwip/tcp.h"
 #include <stdbool.h>
+#include "include/heartrate.h"
 
 #define WIFI_SSID "BPM"
 #define WIFI_PASSWORD "123456789"
@@ -24,6 +25,8 @@ extern tcp_client_t client;
 static err_t tcp_client_recv(void *arg, struct tcp_pcb *tpcb, struct pbuf *p, err_t err);
 
 static err_t tcp_client_connected(void *arg, struct tcp_pcb *tpcb, err_t err);
+
+void tcp_client_send_bpm(tcp_client_t *client, int bpm);
 
 bool tcp_client_open(tcp_client_t *client);
 

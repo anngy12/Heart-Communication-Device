@@ -19,9 +19,10 @@ extern uint32_t last_peak_time;
 extern int bpm;
 extern uint32_t threshold;
 
-int bpm_buffer[AVG_WINDOW];
-int bpm_index;
-int bpm_count;
+extern int bpm_buffer[AVG_WINDOW];
+extern int bpm_index;
+extern int bpm_count;
+extern int bpm_smoothed;
 
 int detect_heartbeat(uint32_t ir_value, uint32_t current_time_ms);
 

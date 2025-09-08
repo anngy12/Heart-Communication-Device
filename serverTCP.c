@@ -1,19 +1,33 @@
 #include "include/serverTCP.h"
 
 tcp_server_t server = {0};
+char recv_buf[64];
+int recv_pos = 0;
 
-// receive messages from client
 static err_t tcp_server_recv(void *arg, struct tcp_pcb *tpcb,
                              struct pbuf *p, err_t err) {
     if (!p) {
         tcp_close(tpcb);
-        server.connected = false;
         printf("Client hat Verbindung geschlossen\n");
         return ERR_OK;
     }
 
-    // Empfangene Daten ausgeben
-    printf("Server empfing: %.*s\n", p->len, (char *)p->payload);
+    // Neue Daten anhängen
+    memcpy(&recv_buf[recv_pos], p->payload, p->len);
+    recv_pos += p->len;
+
+    // Solange ein '\n' drin ist → eine komplette Zahl
+    char *newline;
+    while ((newline = memchr(recv_buf, '\n', recv_pos))) {
+        *newline = '\0'; // String beenden
+        int bpm = atoi(recv_buf);
+        printf("Server empfing BPM: %d\n", bpm);
+
+        // Restpuffer nach vorne schieben
+        int remaining = recv_pos - (newline + 1 - recv_buf);
+        memmove(recv_buf, newline + 1, remaining);
+        recv_pos = remaining;
+    }
 
     tcp_recved(tpcb, p->len);
     pbuf_free(p);
@@ -21,16 +35,15 @@ static err_t tcp_server_recv(void *arg, struct tcp_pcb *tpcb,
 }
 
 
-// send messages to client
-static void tcp_server_send(void *arg, struct tcp_pcb *tpcb, u16_t len, int mode) {
+static void tcp_server_send(void *arg, struct tcp_pcb *tpcb, u16_t len, int bpm) {
     cyw43_arch_lwip_begin();
     tcp_write(tpcb, "c", 18, TCP_WRITE_FLAG_COPY);
     tcp_output(tpcb);
     cyw43_arch_lwip_end();
-    printf("Server sendet: Modus %d\n", mode);
+    printf("Server sendet: BPM %d\n", bpm);
 }
 
-// accept connection from client
+
 static err_t tcp_server_accept(void *arg, struct tcp_pcb *newpcb, err_t err) {
     if(server.connected) {
         tcp_close(newpcb);

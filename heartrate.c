@@ -18,6 +18,7 @@ int smooth_bpm(int new_bpm) {
 
 uint32_t last_peak_time = 0;
 int bpm = 0;
+int bpm_smoothed = 0;
 uint32_t threshold = 50000;
 
 int detect_heartbeat(uint32_t ir_value, uint32_t current_time_ms) {
@@ -50,10 +51,10 @@ int printBPM(){
             uint32_t now = to_ms_since_boot(get_absolute_time());
 
             if (detect_heartbeat(ir, now)) {
-                int bpm_smoothed = smooth_bpm(bpm);
+                bpm_smoothed = smooth_bpm(bpm);
                 printf("BPM (raw): %d | BPM (avg): %d\n", bpm, bpm_smoothed);
             }
         }
     sleep_ms(10);
-    return bpm;
+    return bpm_smoothed;
 }

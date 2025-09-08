@@ -2,7 +2,6 @@
 
 tcp_client_t client = {0};
 
-// Empfangs-Callback
 static err_t tcp_client_recv(void *arg, struct tcp_pcb *tpcb, struct pbuf *p, err_t err) {
     if (!p) {
         printf("Server closed connection\n");
@@ -10,13 +9,15 @@ static err_t tcp_client_recv(void *arg, struct tcp_pcb *tpcb, struct pbuf *p, er
         return ERR_OK;
     }
 
-    printf("Empfangen: %.*s\n", p->len, (char*)p->payload);
+    // set received data to bpm
+    bpm = atoi((char*)p->payload);
+    printf("Herzfrequenz empfangen: %d bpm\n", bpm);
     tcp_recved(tpcb, p->len);
     pbuf_free(p);
     return ERR_OK;
 }
 
-// Verbindung-Callback
+
 static err_t tcp_client_connected(void *arg, struct tcp_pcb *tpcb, err_t err) {
     tcp_client_t *client = (tcp_client_t*)arg;
     if (err == ERR_OK) {
@@ -29,7 +30,6 @@ static err_t tcp_client_connected(void *arg, struct tcp_pcb *tpcb, err_t err) {
     return ERR_OK;
 }
 
-// TCP-Verbindung starten
 bool tcp_client_open(tcp_client_t *client) {
     client->pcb = tcp_new();
     if (!client->pcb) return false;
@@ -42,7 +42,7 @@ bool tcp_client_open(tcp_client_t *client) {
     return true;
 }
 
-// Nachricht senden
+
 void tcp_client_send(tcp_client_t *client, const char *msg) {
     if (client->connected) {
         cyw43_arch_lwip_begin();
@@ -52,6 +52,20 @@ void tcp_client_send(tcp_client_t *client, const char *msg) {
         printf("Gesendet: %s\n", msg);
     }
 }
+
+void tcp_client_send_bpm(tcp_client_t *client, int bpm) {
+   if (!client->connected) return;
+
+    char buffer[16];
+    snprintf(buffer, sizeof(buffer), "%d\n", bpm); // newline als Trenner
+    cyw43_arch_lwip_begin();
+    tcp_write(client->pcb, buffer, strlen(buffer), TCP_WRITE_FLAG_COPY);
+    tcp_output(client->pcb);
+    cyw43_arch_lwip_end();
+
+    printf("Client sendete BPM: %d\n", bpm);
+}
+
 
 void set_static_ip(struct netif *netif) {
     ip4_addr_t ip, mask, gw;
@@ -84,11 +98,9 @@ int init_client_wifi(){
     }
     printf("WiFi verbunden\n");
     tcp_client_open(&client);
-
 }
 
 
-// function for tcp connection
 bool poll_client_wifi(tcp_client_t *client){
     cyw43_arch_poll();
 

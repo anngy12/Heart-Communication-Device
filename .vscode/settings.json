@@ -53,6 +53,8 @@
         "variant": "c",
         "cyw43_arch.h": "c",
         "pwm.h": "c",
-        "servocontrol.h": "c"
+        "servocontrol.h": "c",
+        "i2c.h": "c",
+        "heartrate.h": "c"
     }
 }
