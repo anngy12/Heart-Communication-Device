@@ -14,6 +14,9 @@
 #define TCP_SERVER_IP "192.168.4.1"
 #define TCP_PORT 4242
 
+extern char recv_buf[64];
+extern int recv_pos;
+
 typedef struct {
     struct tcp_pcb *pcb;
     bool connected;

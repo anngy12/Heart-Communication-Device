@@ -34,13 +34,17 @@ static err_t tcp_server_recv(void *arg, struct tcp_pcb *tpcb,
     return ERR_OK;
 }
 
+void tcp_server_send_bpm(int bpm) {
+    if (!server.connected) return;
 
-static void tcp_server_send(void *arg, struct tcp_pcb *tpcb, u16_t len, int bpm) {
+    char buffer[16];
+    int len = snprintf(buffer, sizeof(buffer), "%d\n", bpm);
     cyw43_arch_lwip_begin();
-    tcp_write(tpcb, "c", 18, TCP_WRITE_FLAG_COPY);
-    tcp_output(tpcb);
+    tcp_write(server.pcb, buffer, len, TCP_WRITE_FLAG_COPY);
+    tcp_output(server.pcb);
     cyw43_arch_lwip_end();
-    printf("Server sendet: BPM %d\n", bpm);
+
+    printf("Server sendete BPM: %d\n", bpm);
 }
 
 

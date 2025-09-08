@@ -1,17 +1,33 @@
 #include "include/clientTCP.h"
 
+char recv_buf_client[64];
+int recv_pos_client = 0;
 tcp_client_t client = {0};
 
 static err_t tcp_client_recv(void *arg, struct tcp_pcb *tpcb, struct pbuf *p, err_t err) {
     if (!p) {
-        printf("Server closed connection\n");
         tcp_close(tpcb);
+        printf("Server hat Verbindung geschlossen\n");
         return ERR_OK;
     }
 
-    // set received data to bpm
-    bpm = atoi((char*)p->payload);
-    printf("Herzfrequenz empfangen: %d bpm\n", bpm);
+    // Neue Daten anhängen
+    memcpy(&recv_buf_client[recv_pos_client], p->payload, p->len);
+    recv_pos_client += p->len;
+
+    // Solange ein '\n' drin ist → eine komplette Zahl
+    char *newline;
+    while ((newline = memchr(recv_buf_client, '\n', recv_pos_client))) {
+        *newline = '\0'; // String beenden
+        int bpm = atoi(recv_buf);
+        printf("Client empfing BPM: %d\n", bpm);
+
+        // Restpuffer nach vorne schieben
+        int remaining = recv_pos_client - (newline + 1 - recv_buf_client);
+        memmove(recv_buf_client, newline + 1, remaining);
+        recv_pos_client = remaining;
+    }
+
     tcp_recved(tpcb, p->len);
     pbuf_free(p);
     return ERR_OK;

@@ -20,11 +20,13 @@ extern int recv_pos;
 
 int init_wifi();
 
-static void tcp_server_send(void *arg, struct tcp_pcb *tpcb, u16_t len, int mode);
+// static void tcp_server_send(void *arg, struct tcp_pcb *tpcb, u16_t len, int mode);
 
 static err_t tcp_server_recv(void *arg, struct tcp_pcb *tpcb, struct pbuf *p, err_t err);
 
 static err_t tcp_server_accept(void *arg, struct tcp_pcb *newpcb, err_t err);
+
+void tcp_server_send_bpm(int bpm);
 
 void poll_wifi();
 
