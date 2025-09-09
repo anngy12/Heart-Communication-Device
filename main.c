@@ -23,11 +23,11 @@ int main(){
         poll_wifi();
 
         int new_bpm;
-        if (server_take_bpm(&new_bpm)) {     // neue BPM vom TCP?
-            printf("Starte mit externer BPM: %d\n", new_bpm);
-            servo_set_bpm(servos, new_bpm);  // Servos auf empfangene BPM setzen
-            system_armed = true;             // ab jetzt Servo/MOSFET aktiv
-        }
+        server_take_bpm(&new_bpm);
+        printf("Starte mit externer BPM: %d\n", new_bpm);
+        servo_set_bpm(servos, new_bpm);  // Servos auf empfangene BPM setzen
+        system_armed = true;             // ab jetzt Servo/MOSFET aktiv
+        
 
         if (system_armed) {
             servo_mosfet(servos, mosfets);   // läuft nur nach erster BPM
