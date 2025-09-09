@@ -1,6 +1,8 @@
 #ifndef SERVER_TCP_H
 #define SERVER_TCP_H
 
+#pragma once
+#include <stdbool.h>
 #include "pico/stdlib.h"
 #include "pico/cyw43_arch.h"
 #include "lwip/tcp.h"
@@ -12,6 +14,9 @@ typedef struct {
     struct tcp_pcb *pcb;
     bool connected;
 } tcp_server_t;
+
+extern volatile int  server_last_bpm;
+extern volatile bool server_bpm_new;
 
 extern tcp_server_t server;
 extern char recv_buf[64];
@@ -28,5 +33,9 @@ static err_t tcp_server_accept(void *arg, struct tcp_pcb *newpcb, err_t err);
 void tcp_server_send_bpm(int bpm);
 
 void poll_wifi();
+
+/* Holt einmalig die letzte empfangene BPM.
+   Gibt true zurück, wenn neu; setzt das "neu"-Flag zurück. */
+bool server_take_bpm(int *out_bpm);
 
 #endif // SERVER_TCP_H

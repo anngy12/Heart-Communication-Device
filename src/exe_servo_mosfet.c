@@ -1,4 +1,9 @@
 #include "exe_servo_mosfet.h"
+#include "include/serverTCP.h"
+
+static int last_sent_bpm = -1;               // zuletzt gesendeter BPM (ganzzahlig)
+static absolute_time_t last_send_time;       // Zeitstempel letzter Sendung
+
 
 /* --- NEU: Staffelzeiten --- */
 #define STAGGER_ON_DELAY_MS   800   // nach Finger-ON: Wartezeit bis MOSFET-Start
@@ -36,6 +41,7 @@ void servo_mosfet(Servo servos[], Mosfet mosfets[])
         finger_on_since   = last_peak_time;
         mosfets_off_time  = last_peak_time;
         init_done = true;
+        last_send_time = get_absolute_time();
     }
 
     // === Sensor regelmäßig lesen (alle ~20ms) ===
@@ -119,7 +125,18 @@ void servo_mosfet(Servo servos[], Mosfet mosfets[])
 
                                 printf("Herzfrequenz: %.1f BPM\n", bpm_avg);
                                 // Setzt nur das Zieltempo; Schalten macht servo_tick()
-                                servo_set_bpm(servos, bpm_avg);
+                               // servo_set_bpm(servos, bpm_avg);
+                               // nach servo_set_bpm(servos, bpm_avg);
+                                int bpm_to_send = (int)(bpm_avg + 0.5f);
+                                absolute_time_t now = get_absolute_time();
+                                int32_t ms_since_last = absolute_time_diff_us(last_send_time, now) / 1000;
+
+                                if ((bpm_to_send != last_sent_bpm || ms_since_last >= 1000)) {
+                                    tcp_server_send_bpm(bpm_to_send);        // <-- an Client senden
+                                    last_sent_bpm  = bpm_to_send;
+                                    last_send_time = now;
+                                }
+
                             }
                             last_peak_time = now;
                         }

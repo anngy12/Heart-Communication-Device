@@ -1,37 +1,75 @@
-#include "include/serverTCP.h"
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include "pico/stdlib.h"
+#include "lwip/tcp.h"
+#include "include/serverTCP.h"   // deklariert server_last_bpm/server_bpm_new o. server_take_bpm()
 
+/* --- Dateiweite Zustände --- */
 tcp_server_t server = {0};
 char recv_buf[64];
 int recv_pos = 0;
 
-static err_t tcp_server_recv(void *arg, struct tcp_pcb *tpcb,
-                             struct pbuf *p, err_t err) {
+/* global (für main usw.) */
+volatile int  server_last_bpm = -1;
+volatile bool server_bpm_new  = false;
+
+/* --- TCP RX Callback --- */
+static err_t tcp_server_recv(void *arg, struct tcp_pcb *tpcb, struct pbuf *p, err_t err) {
     if (!p) {
+        // Peer hat sauber geschlossen
         tcp_close(tpcb);
         printf("Client hat Verbindung geschlossen\n");
         return ERR_OK;
     }
-
-    // Neue Daten anhängen
-    memcpy(&recv_buf[recv_pos], p->payload, p->len);
-    recv_pos += p->len;
-
-    // Solange ein '\n' drin ist → eine komplette Zahl
-    char *newline;
-    while ((newline = memchr(recv_buf, '\n', recv_pos))) {
-        *newline = '\0'; // String beenden
-        int bpm = atoi(recv_buf);
-        printf("Server empfing BPM: %d\n", bpm);
-
-        // Restpuffer nach vorne schieben
-        int remaining = recv_pos - (newline + 1 - recv_buf);
-        memmove(recv_buf, newline + 1, remaining);
-        recv_pos = remaining;
+    if (err != ERR_OK) {
+        pbuf_free(p);
+        return err;
     }
 
-    tcp_recved(tpcb, p->len);
+    // p kann aus einer Kette bestehen -> vollständig iterieren
+    struct pbuf *q = p;
+    while (q) {
+        const uint8_t *data = (const uint8_t *)q->payload;
+        u16_t len = q->len;
+
+        for (u16_t i = 0; i < len; i++) {
+            char c = (char)data[i];
+            if (c == '\r') continue;            // CR ignorieren (für CRLF)
+            if (c == '\n') {
+                // Nachricht abgeschlossen -> Zahl parsen
+                recv_buf[recv_pos] = '\0';
+                int bpm = atoi(recv_buf);
+
+                server_last_bpm = bpm;
+                server_bpm_new  = true;
+                printf("Server empfing BPM: %d\n", bpm);
+
+                recv_pos = 0;                    // für nächste Nachricht
+            } else {
+                if (recv_pos < (64 - 1)) {
+                    recv_buf[recv_pos++] = c;    // Zeichen puffern
+                } else {
+                    // Overflow-Schutz: verwerfen und neu beginnen
+                    recv_pos = 0;
+                }
+            }
+        }
+        q = q->next;
+    }
+
+    // TCP-Fenster freigeben & Puffer entsorgen
+    tcp_recved(tpcb, p->tot_len);
     pbuf_free(p);
     return ERR_OK;
+}
+
+
+bool server_take_bpm(int *out_bpm) {
+    if (!server_bpm_new) return false;
+    *out_bpm = server_last_bpm;
+    server_bpm_new = false;
+    return true;
 }
 
 void tcp_server_send_bpm(int bpm) {
@@ -76,6 +114,8 @@ int init_wifi(){
     tcp_bind(pcb, IP_ANY_TYPE, 4242);   // Port 4242
     pcb = tcp_listen(pcb);
     tcp_accept(pcb, tcp_server_accept);
+
+    return 0;
 }
 
 void poll_wifi(){
