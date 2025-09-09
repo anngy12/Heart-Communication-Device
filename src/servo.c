@@ -113,10 +113,9 @@ void servo_set_phase_offsets(Servo *servos, const float *offsets_0to1) {
     }
 }
 
-void servo_init_and_default(){
+void servo_init_and_default(Servo *servos){
     // Servos
     servo_init_all();
-    Servo servos[SERVO_COUNT];
     for (int i = 0; i < SERVO_COUNT; i++) {
         servos[i].pin = SERVO_PINS[i];
         servos[i].enabled = false;

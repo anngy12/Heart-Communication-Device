@@ -7,7 +7,6 @@
 #include "pico/cyw43_arch.h"
 #include "lwip/tcp.h"
 #include <stdbool.h>
-#include "include/heartrate.h"
 
 #define WIFI_SSID "BPM"
 #define WIFI_PASSWORD "123456789"

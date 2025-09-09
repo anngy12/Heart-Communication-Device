@@ -105,7 +105,7 @@ int init_client_wifi(){
 
     cyw43_arch_enable_sta_mode();
 
-    set_static_ip(&cyw43_state.netif[0]);
+    set_static_ip(netif_default); // netif[0] funktionierte nicht, hab es ersetzt
 
     printf("Verbinde mit WiFi...\n");
     if (cyw43_arch_wifi_connect_timeout_ms(WIFI_SSID, WIFI_PASSWORD, CYW43_AUTH_WPA2_AES_PSK, 10000)) {

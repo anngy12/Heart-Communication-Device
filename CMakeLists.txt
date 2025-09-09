@@ -35,7 +35,14 @@ pico_sdk_init()
 
 # Add executable. Default name is the project name, version 0.1
 
-add_executable(max30102_test max30102_test.c )
+add_executable(max30102_test 
+    clientTCP.c
+    exe_servo_mosfet.c
+    main.c
+    max30102.c
+    mosfet.c
+    serverTCP.c
+    servo.c)
 
 pico_set_program_name(max30102_test "max30102_test")
 pico_set_program_version(max30102_test "0.1")
@@ -45,14 +52,26 @@ pico_enable_stdio_uart(max30102_test 0)
 pico_enable_stdio_usb(max30102_test 1)
 
 # Add the standard library to the build
-target_link_libraries(max30102_test pico_stdlib hardware_i2c hardware_pwm)
+target_link_libraries(max30102_test 
+    pico_stdlib 
+    hardware_i2c 
+    hardware_pwm
+    pico_cyw43_arch_lwip_threadsafe_background)
 
 
 
 # Add the standard include files to the build
 target_include_directories(max30102_test PRIVATE
-        ${CMAKE_CURRENT_LIST_DIR}
+    ${CMAKE_CURRENT_LIST_DIR}
+    ${PICO_SDK_PATH}/stdlib
+    ${PICO_SDK_PATH}/stdint
+    ${CMAKE_CURRENT_LIST_DIR}/include
+    ${PICO_SDK_PATH}/hardware/pwm
+    ${PICO_SDK_PATH}/hardware/i2c
+    ${PICO_SDK_PATH}/hardware/gpio
+
 )
+
 
 pico_add_extra_outputs(max30102_test)
 
