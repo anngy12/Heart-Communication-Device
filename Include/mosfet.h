@@ -10,6 +10,7 @@ extern const uint MOSFET_PINS[MOSFET_COUNT];
 
 typedef enum {
     MOSFET_IDLE,
+    MOSFET_WAIT,
     MOSFET_ON,
     MOSFET_OFF
 } MosfetState;
@@ -26,6 +27,10 @@ void mosfet_init_all(Mosfet *m);
 
 // Startet Daueroszillation mit frei wählbaren Zeiten (z. B. 3000, 2000)
 void mosfet_start_oscillate(Mosfet *m, uint id, uint32_t on_ms, uint32_t off_ms);
+
+void mosfet_start_oscillate_delayed(Mosfet *m, uint id,
+                                    uint32_t on_ms, uint32_t off_ms,
+                                    uint32_t start_delay_ms);
 
 // Zeiten zur Laufzeit ändern (wirksam ab nächstem Umschaltpunkt)
 static inline void mosfet_set_durations(Mosfet *m, uint id, uint32_t on_ms, uint32_t off_ms) {

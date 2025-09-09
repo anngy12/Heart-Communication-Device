@@ -5,7 +5,7 @@
 int main(){
     stdio_init_all();
 
-    void max30102_init(void);
+    max30102_init();
 
     Servo servos[SERVO_COUNT];
     servo_init_and_default(servos);
