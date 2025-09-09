@@ -1,8 +1,3 @@
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include "pico/stdlib.h"
-#include "lwip/tcp.h"
 #include "include/serverTCP.h"   // deklariert server_last_bpm/server_bpm_new o. server_take_bpm()
 
 /* --- Dateiweite Zustände --- */
