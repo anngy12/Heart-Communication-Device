@@ -1,6 +1,6 @@
 #include "mosfet.h"
 
-const uint MOSFET_PINS[MOSFET_COUNT] = {10, 11, 12, 13}; // <- an deine Pins anpassen
+const uint MOSFET_PINS[MOSFET_COUNT] = {11, 12, 13}; // <- an deine Pins anpassen
 
 static inline bool mosfet_time_reached(absolute_time_t t) {
     return absolute_time_diff_us(get_absolute_time(), t) <= 0;

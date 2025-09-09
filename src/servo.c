@@ -4,7 +4,7 @@
 #define M_PI 3.14159265358979323846
 
 
-const uint SERVO_PINS[SERVO_COUNT] = {15, 16, 17, 18};
+const uint SERVO_PINS[SERVO_COUNT] = {16, 17, 18};
 static const uint32_t SERVO_WRAP = 20000; // 50 Hz bei 1 MHz PWM-Basis
 
 static inline float clampf(float v, float lo, float hi) {

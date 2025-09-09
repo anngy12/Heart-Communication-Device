@@ -5,7 +5,7 @@
 #include <stdbool.h>
 #include <stdio.h>
 
-#define MOSFET_COUNT 4
+#define MOSFET_COUNT 3
 extern const uint MOSFET_PINS[MOSFET_COUNT];
 
 typedef enum {

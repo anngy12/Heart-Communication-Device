@@ -23,7 +23,7 @@ if (EXISTS ${picoVscode})
     include(${picoVscode})
 endif()
 # ====================================================================================
-set(PICO_BOARD pico2 CACHE STRING "Board type")
+set(PICO_BOARD pico2_w CACHE STRING "Board type")
 
 # Pull in Raspberry Pi Pico SDK (must be before project)
 include(pico_sdk_import.cmake)
@@ -36,13 +36,13 @@ pico_sdk_init()
 # Add executable. Default name is the project name, version 0.1
 
 add_executable(max30102_test 
-    clientTCP.c
-    exe_servo_mosfet.c
+    src/clientTCP.c
+    src/exe_servo_mosfet.c
     main.c
-    max30102.c
-    mosfet.c
-    serverTCP.c
-    servo.c)
+    src/max30102.c
+    src/mosfet.c
+    src/serverTCP.c
+    src/servo.c)
 
 pico_set_program_name(max30102_test "max30102_test")
 pico_set_program_version(max30102_test "0.1")
@@ -53,10 +53,12 @@ pico_enable_stdio_usb(max30102_test 1)
 
 # Add the standard library to the build
 target_link_libraries(max30102_test 
-    pico_stdlib 
-    hardware_i2c 
+    pico_stdlib
+    pico_cyw43_arch_lwip_threadsafe_background
+    hardware_i2c
     hardware_pwm
-    pico_cyw43_arch_lwip_threadsafe_background)
+    hardware_gpio
+)
 
 
 
@@ -69,7 +71,6 @@ target_include_directories(max30102_test PRIVATE
     ${PICO_SDK_PATH}/hardware/pwm
     ${PICO_SDK_PATH}/hardware/i2c
     ${PICO_SDK_PATH}/hardware/gpio
-
 )
 
 

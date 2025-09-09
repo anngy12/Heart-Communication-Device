@@ -7,7 +7,7 @@
 #include <math.h>
 
 #define M_PI 3.14159265358979323846
-#define SERVO_COUNT 4
+#define SERVO_COUNT 3
 
 extern const uint SERVO_PINS[SERVO_COUNT];
 
@@ -33,6 +33,6 @@ void servo_center_all(Servo *servos);
 void servo_set_uniform_phase_step(Servo *servos, float step_0to1);
 void servo_set_phase_offsets(Servo *servos, const float *offsets_0to1);
 
-void servo_init_and_default();
+void servo_init_and_default(Servo *servos);
 
 #endif
