@@ -21,6 +21,10 @@ static bool prev_above_avg = false;
 static absolute_time_t last_peak_time;
 static absolute_time_t last_sensor_read;
 
+static bool actuation_enabled = false;
+void servo_set_actuation_enabled(bool en) { actuation_enabled = en; }
+
+
 float bpm_avg = 0;
 
 static bool init_done = false;
@@ -79,6 +83,13 @@ void servo_mosfet(Servo servos[], Mosfet mosfets[])
                         // Peak-Detektion zurücksetzen
                         prev_above_avg = false;
                     }
+                    absolute_time_t now = get_absolute_time();
+                    int32_t ms = absolute_time_diff_us(last_send_time, now) / 1000;
+                    if (ms >= 500 || last_sent_bpm != 0) {   // sofort 1x + dann alle 500ms
+                        tcp_server_send_bpm(0);
+                        last_sent_bpm  = 0;
+                        last_send_time = now;
+                    }
 
                     finger_on_prev = false;
                 } else {
@@ -93,6 +104,7 @@ void servo_mosfet(Servo servos[], Mosfet mosfets[])
                         awaiting_center_after_off = false; // evtl. off-Zentrierung abbrechen
                     }
 
+                    if (actuation_enabled) {
                     // MOSFETs nach Verzögerung genau einmal starten
                     if (!mosfets_running) {
                         int32_t ms_on = absolute_time_diff_us(finger_on_since, get_absolute_time()) / 1000;
@@ -106,6 +118,7 @@ void servo_mosfet(Servo servos[], Mosfet mosfets[])
                             mosfets_running = true;
                         }
                     }
+                }
 
                     // Peak-Detektion / BPM
                     bool curr_above_avg = ir > ir_avg;
@@ -128,11 +141,9 @@ void servo_mosfet(Servo servos[], Mosfet mosfets[])
                                // servo_set_bpm(servos, bpm_avg);
                                // nach servo_set_bpm(servos, bpm_avg);
                                 int bpm_to_send = (int)(bpm_avg + 0.5f);
-                                absolute_time_t now = get_absolute_time();
-                                int32_t ms_since_last = absolute_time_diff_us(last_send_time, now) / 1000;
-
-                                if ((bpm_to_send != last_sent_bpm || ms_since_last >= 1000)) {
-                                    tcp_server_send_bpm(bpm_to_send);        // <-- an Client senden
+                                int32_t ms_since = absolute_time_diff_us(last_send_time, now) / 1000;
+                                if (bpm_to_send != last_sent_bpm || ms_since >= 1000) {
+                                    tcp_server_send_bpm(bpm_to_send);
                                     last_sent_bpm  = bpm_to_send;
                                     last_send_time = now;
                                 }
@@ -162,5 +173,6 @@ void servo_mosfet(Servo servos[], Mosfet mosfets[])
     mosfet_update_all(mosfets);
 
     // Servos immer ticken lassen
+    if(actuation_enabled)
     servo_tick(servos);
 }

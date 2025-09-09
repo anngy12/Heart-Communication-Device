@@ -57,7 +57,7 @@ static err_t tcp_server_recv(void *arg, struct tcp_pcb *tpcb, struct pbuf *p, er
 
 
 bool server_take_bpm(int *out_bpm) {
-    //if (!server_bpm_new) return false;
+    if (!server_bpm_new) return false;
     *out_bpm = server_last_bpm;
     server_bpm_new = false;
     return true;

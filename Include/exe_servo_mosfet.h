@@ -18,6 +18,7 @@
 #define MIN_PEAK_INTERVAL_MS 500
 #define FINGER_ON_THRESHOLD  50000  // IR-Durchschnittsschwelle
 
+void servo_set_actuation_enabled(bool en);
 
 // Führt genau einen Schleifendurchlauf der App-Logik aus.
 // Erwartet initialisierte Servos, MOSFETs sowie den MAX30102.

@@ -20,23 +20,20 @@ int main(){
     bool system_armed = false;   // läuft erst nach 1. BPM
 
     while (true) {
-        poll_wifi();
+    poll_wifi();
 
-        int new_bpm;
-        server_take_bpm(&new_bpm);
-        printf("Starte mit externer BPM: %d\n", new_bpm);
-        servo_set_bpm(servos, new_bpm);  // Servos auf empfangene BPM setzen
-        system_armed = true;             // ab jetzt Servo/MOSFET aktiv
-        
-
-        if (system_armed) {
-            servo_mosfet(servos, mosfets);   // läuft nur nach erster BPM
-        } else {
-            // alles passiv halten
-            mosfet_update_all(mosfets);
-            // optional: servo_center_all(servos);
+    int new_bpm;
+    if (server_take_bpm(&new_bpm)) {
+        if (new_bpm > 0) {                 // 0 ignorieren
+            servo_set_bpm(servos, new_bpm);           // externe BPM übernimmt
+            servo_set_actuation_enabled(true);        // ab jetzt bewegen erlaubt
         }
-
-        sleep_ms(5);
     }
+
+    // WICHTIG: immer laufen lassen -> misst & sendet auch ohne Empfang
+    servo_mosfet(servos, mosfets);
+
+    sleep_ms(5);
+}
+
 }
