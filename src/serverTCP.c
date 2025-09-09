@@ -105,8 +105,6 @@ int init_wifi(){
     tcp_bind(pcb, IP_ANY_TYPE, 4242);   // Port 4242
     pcb = tcp_listen(pcb);
     tcp_accept(pcb, tcp_server_accept);
-
-    return 0;
 }
 
 void poll_wifi(){
