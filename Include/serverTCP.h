@@ -9,8 +9,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include "pico/stdlib.h"
-#include "lwip/tcp.h"
 
 #define WIFI_SSID "BPM"
 #define WIFI_PASS "123456789"
