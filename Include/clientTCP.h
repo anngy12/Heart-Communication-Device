@@ -7,6 +7,9 @@
 #include "pico/cyw43_arch.h"
 #include "lwip/tcp.h"
 #include <stdbool.h>
+#include "lwip/netif.h"
+#include "lwip/ip4_addr.h"
+
 
 #define WIFI_SSID "BPM"
 #define WIFI_PASSWORD "123456789"
@@ -20,6 +23,9 @@ typedef struct {
     struct tcp_pcb *pcb;
     bool connected;
 } tcp_client_t;
+
+extern volatile int  client_last_bpm;
+extern volatile bool client_bpm_new;
 
 extern tcp_client_t client;
 
@@ -39,5 +45,7 @@ void set_static_ip(struct netif *netif);
 int init_client_wifi();
 
 bool poll_client_wifi(tcp_client_t *client);
+
+bool client_take_bpm(int *out);
 
 #endif // CLIENT_TCP_H

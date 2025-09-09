@@ -1,5 +1,8 @@
 #include "include/clientTCP.h"
 
+volatile int  client_last_bpm = -1;
+volatile bool client_bpm_new  = false;
+
 char recv_buf_client[64];
 int recv_pos_client = 0;
 tcp_client_t client = {0};
@@ -12,6 +15,7 @@ static err_t tcp_client_recv(void *arg, struct tcp_pcb *tpcb, struct pbuf *p, er
     }
 
     // Neue Daten anhängen
+    if (recv_pos_client + p->len >= (int)sizeof(recv_buf_client)) recv_pos_client = 0;
     memcpy(&recv_buf_client[recv_pos_client], p->payload, p->len);
     recv_pos_client += p->len;
 
@@ -19,7 +23,9 @@ static err_t tcp_client_recv(void *arg, struct tcp_pcb *tpcb, struct pbuf *p, er
     char *newline;
     while ((newline = memchr(recv_buf_client, '\n', recv_pos_client))) {
         *newline = '\0'; // String beenden
-        int bpm = atoi(recv_buf);
+        int bpm = atoi(recv_buf_client);
+        client_last_bpm = bpm;
+        client_bpm_new  = true;
         printf("Client empfing BPM: %d\n", bpm);
 
         // Restpuffer nach vorne schieben
@@ -28,10 +34,18 @@ static err_t tcp_client_recv(void *arg, struct tcp_pcb *tpcb, struct pbuf *p, er
         recv_pos_client = remaining;
     }
 
-    tcp_recved(tpcb, p->len);
+    tcp_recved(tpcb, p->tot_len);
     pbuf_free(p);
     return ERR_OK;
 }
+
+bool client_take_bpm(int *out_bpm) {
+    if (!client_bpm_new) return false;
+    *out_bpm = client_last_bpm;
+    client_bpm_new = false;
+    return true;
+}
+
 
 
 static err_t tcp_client_connected(void *arg, struct tcp_pcb *tpcb, err_t err) {

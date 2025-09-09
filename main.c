@@ -1,13 +1,13 @@
 #include "mosfet.h"
 #include "servo.h"
 #include "exe_servo_mosfet.h"
-#include "include/serverTCP.h"
+#include "include/clientTCP.h"
 
 int main(){
     stdio_init_all();
 
-    init_wifi();
-    printf("Server läuft...\n");
+    init_client_wifi();
+    printf("Client läuft...\n");
 
     max30102_init();
 
@@ -20,10 +20,10 @@ int main(){
     bool system_armed = false;   // läuft erst nach 1. BPM
 
     while (true) {
-    poll_wifi();
+    poll_client_wifi(&client);
 
     int new_bpm;
-    if (server_take_bpm(&new_bpm)) {
+    if (client_take_bpm(&new_bpm)) {
         if (new_bpm > 0) {                 // 0 ignorieren
             servo_set_bpm(servos, new_bpm);           // externe BPM übernimmt
             servo_set_actuation_enabled(true);        // ab jetzt bewegen erlaubt

@@ -1,5 +1,5 @@
 #include "exe_servo_mosfet.h"
-#include "include/serverTCP.h"
+#include "include/clientTCP.h"
 
 static int last_sent_bpm = -1;               // zuletzt gesendeter BPM (ganzzahlig)
 static absolute_time_t last_send_time;       // Zeitstempel letzter Sendung
@@ -86,7 +86,7 @@ void servo_mosfet(Servo servos[], Mosfet mosfets[])
                     absolute_time_t now = get_absolute_time();
                     int32_t ms = absolute_time_diff_us(last_send_time, now) / 1000;
                     if (ms >= 500 || last_sent_bpm != 0) {   // sofort 1x + dann alle 500ms
-                        tcp_server_send_bpm(0);
+                        tcp_client_send_bpm(&client, 0);
                         last_sent_bpm  = 0;
                         last_send_time = now;
                     }
@@ -143,7 +143,7 @@ void servo_mosfet(Servo servos[], Mosfet mosfets[])
                                 int bpm_to_send = (int)(bpm_avg + 0.5f);
                                 int32_t ms_since = absolute_time_diff_us(last_send_time, now) / 1000;
                                 if (bpm_to_send != last_sent_bpm || ms_since >= 1000) {
-                                    tcp_server_send_bpm(bpm_to_send);
+                                    tcp_client_send_bpm(&client, bpm_to_send);
                                     last_sent_bpm  = bpm_to_send;
                                     last_send_time = now;
                                 }
