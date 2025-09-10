@@ -7,6 +7,15 @@ char recv_buf_client[64];
 int recv_pos_client = 0;
 tcp_client_t client = {0};
 
+
+// Zeitstempel des letzten *vollständig* empfangenen BPM-Befehls
+static absolute_time_t last_rx_time;
+
+// öffentlich nutzbare Hilfsfunktion: Millisekunden seit letztem Empfang
+int client_ms_since_rx(void) {
+    return (int)(absolute_time_diff_us(last_rx_time, get_absolute_time()) / 1000);
+}
+
 static err_t tcp_client_recv(void *arg, struct tcp_pcb *tpcb, struct pbuf *p, err_t err) {
     if (!p) {
         tcp_close(tpcb);
@@ -27,6 +36,9 @@ static err_t tcp_client_recv(void *arg, struct tcp_pcb *tpcb, struct pbuf *p, er
         client_last_bpm = bpm;
         client_bpm_new  = true;
         printf("Client empfing BPM: %d\n", bpm);
+
+         // Zeitstempel aktualisieren, da wir eine komplette Zeile (BPM) erhalten haben
+         last_rx_time = get_absolute_time();
 
         // Restpuffer nach vorne schieben
         int remaining = recv_pos_client - (newline + 1 - recv_buf_client);
@@ -127,6 +139,7 @@ int init_client_wifi(){
         return -1;
     }
     printf("WiFi verbunden\n");
+    last_rx_time = get_absolute_time();
     tcp_client_open(&client);
 }
 
