@@ -20,7 +20,7 @@ void servo_init_all(void) {
         pwm_set_clkdiv(slice, 125.0f); // 125 MHz / 125 = 1 MHz
         pwm_set_wrap(slice, SERVO_WRAP);
         pwm_set_enabled(slice, true);
-        set_servo_angle(SERVO_PINS[i], 90.0f);
+        set_servo_angle(SERVO_PINS[i], 0);
     }
 }
 
@@ -91,7 +91,7 @@ void servo_tick(Servo *servos) {
 void servo_center_all(Servo *servos) {
     for (int i = 0; i < SERVO_COUNT; i++) {
         servos[i].enabled = false;  // stoppt Bewegung
-        set_servo_angle(servos[i].pin, 90.0f);
+        set_servo_angle(servos[i].pin, 0);
         // phase / phase_offset unverändert lassen
     }
 }
@@ -123,7 +123,7 @@ void servo_init_and_default(Servo *servos){
         servos[i].bpm = 90.0f;         // Default
         servos[i].phase = 0.0f;
         servos[i].last_ts = get_absolute_time();
-        set_servo_angle(servos[i].pin, 90.0f);
+        set_servo_angle(servos[i].pin, 0);
     }
      // nach der Schleife, die servos[i] füllt:
     for (int i = 0; i < SERVO_COUNT; i++) {
