@@ -8,6 +8,16 @@ int recv_pos = 0;
 volatile int  server_last_bpm = -1;
 volatile bool server_bpm_new  = false;
 
+
+// Zeitstempel des letzten *vollständig* empfangenen BPM-Befehls
+static absolute_time_t last_rx_time;
+
+// öffentlich nutzbare Hilfsfunktion: Millisekunden seit letztem Empfang
+int server_ms_since_rx(void) {
+    return (int)(absolute_time_diff_us(last_rx_time, get_absolute_time()) / 1000);
+}
+
+
 static err_t tcp_server_recv(void *arg, struct tcp_pcb *tpcb, struct pbuf *p, err_t err) {
     if (!p) {
         tcp_close(tpcb);
@@ -42,6 +52,8 @@ static err_t tcp_server_recv(void *arg, struct tcp_pcb *tpcb, struct pbuf *p, er
                 server_last_bpm = bpm;
                 server_bpm_new  = true;
                 printf("Server empfing BPM: %d\n", bpm);
+                // Zeitstempel aktualisieren, da wir eine komplette Zeile (BPM) erhalten haben
+                last_rx_time = get_absolute_time();
 
                 // Rest nach vorne schieben
                 int remaining = recv_pos - (int)(newline + 1 - recv_buf);
@@ -59,7 +71,6 @@ static err_t tcp_server_recv(void *arg, struct tcp_pcb *tpcb, struct pbuf *p, er
 bool server_take_bpm(int *out_bpm) {
     if (!server_bpm_new) return false;
     *out_bpm = server_last_bpm;
-    server_bpm_new = false;
     return true;
 }
 
@@ -101,6 +112,7 @@ int init_wifi(){
     printf("AP gestartet: SSID=%s, IP=192.168.4.1\n", WIFI_SSID);
 
     // TCP-Server starten
+    last_rx_time = get_absolute_time();
     struct tcp_pcb *pcb = tcp_new_ip_type(IPADDR_TYPE_ANY);
     tcp_bind(pcb, IP_ANY_TYPE, 4242);   // Port 4242
     pcb = tcp_listen(pcb);

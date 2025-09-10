@@ -1,5 +1,6 @@
 #include "exe_servo_mosfet.h"
 #include "include/serverTCP.h"
+#include "stdbool.h"
 
 static int last_sent_bpm = -1;               // zuletzt gesendeter BPM (ganzzahlig)
 static absolute_time_t last_send_time;       // Zeitstempel letzter Sendung
@@ -13,6 +14,10 @@ static absolute_time_t last_send_time;       // Zeitstempel letzter Sendung
 // Zustände nur einmal anlegen (static = Dateibereich, bleiben über Aufrufe hinweg erhalten)
 static uint32_t ir_buffer[MOVING_AVG_SIZE] = {0};
 static uint8_t  ir_idx = 0, ir_count = 0;
+
+// --- Finger-Status global verfügbar machen (minimaler Export) ---
+static volatile bool sensor_finger_on = false;
+bool sensor_finger_present(void) { return sensor_finger_on; }
 
 static float bpm_buffer[BPM_AVG_SIZE] = {0};
 static uint8_t bpm_idx = 0, bpm_count = 0;
@@ -65,21 +70,23 @@ void servo_mosfet(Servo servos[], Mosfet mosfets[])
                 uint32_t ir_avg = (ir_count ? (sum / ir_count) : 0);
 
                 bool finger_on = (ir_avg >= FINGER_ON_THRESHOLD);
+                sensor_finger_on = (ir_avg > FINGER_ON_THRESHOLD);
 
                 if (!finger_on) {
-                    servo_set_actuation_enabled(false);
                     /* ------------------ FINGER OFF ------------------
                        1) MOSFETs sofort aus
                        2) kurze Wartezeit
                        3) dann Servos zentrieren
                     */
                     if (finger_on_prev) {
+                        servo_set_actuation_enabled(false);
                         // nur beim Wechsel von ON -> OFF auslösen
                         for (int i = 0; i < MOSFET_COUNT; i++) mosfet_stop(mosfets, i);
                         mosfets_running = false;
 
                         mosfets_off_time = get_absolute_time();
                         awaiting_center_after_off = true;
+                        servo_center_all(servos);
 
                         // Peak-Detektion zurücksetzen
                         prev_above_avg = false;
@@ -105,6 +112,7 @@ void servo_mosfet(Servo servos[], Mosfet mosfets[])
                         mosfets_running = false;
                         awaiting_center_after_off = false; // evtl. off-Zentrierung abbrechen
                     }
+                    //servo_set_actuation_enabled(true);
 
                     if (actuation_enabled) {
                     // MOSFETs nach Verzögerung genau einmal starten
@@ -162,14 +170,14 @@ void servo_mosfet(Servo servos[], Mosfet mosfets[])
     }
 
     /* --- NEU: verzögertes Zentrieren nach OFF (außerhalb des Sensor-Ifs,
-       damit es zuverlässig passiert, auch wenn gerade keine Samples kommen) --- */
+       damit es zuverlässig passiert, auch wenn gerade keine Samples kommen) --- 
     if (awaiting_center_after_off) {
         int32_t ms_since_off = absolute_time_diff_us(mosfets_off_time, get_absolute_time()) / 1000;
         if (ms_since_off >= STAGGER_OFF_DELAY_MS) {
             servo_center_all(servos);
             awaiting_center_after_off = false;
         }
-    }
+    }*/
 
     // MOSFET-State-Maschine stets updaten
     mosfet_update_all(mosfets);
