@@ -67,7 +67,7 @@ void servo_mosfet(Servo servos[], Mosfet mosfets[])
                 bool finger_on = (ir_avg >= FINGER_ON_THRESHOLD);
 
                 if (!finger_on) {
-                    actuation_enabled = false;
+                    servo_set_actuation_enabled(false);
                     /* ------------------ FINGER OFF ------------------
                        1) MOSFETs sofort aus
                        2) kurze Wartezeit
@@ -116,7 +116,7 @@ void servo_mosfet(Servo servos[], Mosfet mosfets[])
                             mosfet_start_oscillate_delayed(mosfets, 1, 5000, 500, 0);
 
                             // Dann den dritten nach Delay
-                            mosfet_start_oscillate_delayed(mosfets, 2, 5000, 500, LAST_DELAY_MS);
+                            mosfet_start_oscillate_delayed(mosfets, 2, 5000, 500, 3000);
                             mosfets_running = true;
                         }
                     }
