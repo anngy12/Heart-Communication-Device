@@ -112,11 +112,11 @@ void servo_mosfet(Servo servos[], Mosfet mosfets[])
                         int32_t ms_on = absolute_time_diff_us(finger_on_since, get_absolute_time()) / 1000;
                         if (ms_on >= STAGGER_ON_DELAY_MS) {
                             // Erst die ersten zwei gleichzeitig
-                            mosfet_start_oscillate_delayed(mosfets, 0, 3000, 500, 0);
-                            mosfet_start_oscillate_delayed(mosfets, 1, 3000, 500, 300);
+                            mosfet_start_oscillate_delayed(mosfets, 0, 5000, 500, 0);
+                            mosfet_start_oscillate_delayed(mosfets, 1, 5000, 500, 0);
 
                             // Dann den dritten nach Delay
-                            mosfet_start_oscillate_delayed(mosfets, 2, 3000, 500, LAST_DELAY_MS);
+                            mosfet_start_oscillate_delayed(mosfets, 2, 5000, 500, 3000);
                             mosfets_running = true;
                         }
                     }
