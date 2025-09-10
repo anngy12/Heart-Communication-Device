@@ -27,8 +27,6 @@ int main(){
     Mosfet mosfets[MOSFET_COUNT];
     mosfet_init_all(mosfets);
 
-    bool system_armed = false;   // läuft erst nach 1. BPM
-
     while (true) {
     poll_client_wifi(&client);
 
