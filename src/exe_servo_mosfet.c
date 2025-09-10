@@ -67,6 +67,7 @@ void servo_mosfet(Servo servos[], Mosfet mosfets[])
                 bool finger_on = (ir_avg >= FINGER_ON_THRESHOLD);
 
                 if (!finger_on) {
+                    servo_set_actuation_enabled(false);
                     /* ------------------ FINGER OFF ------------------
                        1) MOSFETs sofort aus
                        2) kurze Wartezeit
@@ -83,13 +84,14 @@ void servo_mosfet(Servo servos[], Mosfet mosfets[])
                         // Peak-Detektion zurücksetzen
                         prev_above_avg = false;
                     }
+                    /** 
                     absolute_time_t now = get_absolute_time();
                     int32_t ms = absolute_time_diff_us(last_send_time, now) / 1000;
                     if (ms >= 500 || last_sent_bpm != 0) {   // sofort 1x + dann alle 500ms
                         tcp_client_send_bpm(&client, 0);
                         last_sent_bpm  = 0;
                         last_send_time = now;
-                    }
+                    }*/
 
                     finger_on_prev = false;
                 } else {
