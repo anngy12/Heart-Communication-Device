@@ -9,7 +9,7 @@ static absolute_time_t last_send_time;       // Zeitstempel letzter Sendung
 /* --- NEU: Staffelzeiten --- */
 #define STAGGER_ON_DELAY_MS   800   // nach Finger-ON: Wartezeit bis MOSFET-Start
 #define STAGGER_OFF_DELAY_MS  200   // nach MOSFET-OFF: Wartezeit bis Servo zentrieren
-#define LAST_DELAY_MS  600  
+#define LAST_DELAY_MS  3000  
 
 // Zustände nur einmal anlegen (static = Dateibereich, bleiben über Aufrufe hinweg erhalten)
 static uint32_t ir_buffer[MOVING_AVG_SIZE] = {0};
@@ -91,14 +91,6 @@ void servo_mosfet(Servo servos[], Mosfet mosfets[])
                         // Peak-Detektion zurücksetzen
                         prev_above_avg = false;
                     }
-                    /** 
-                    absolute_time_t now = get_absolute_time();
-                    int32_t ms = absolute_time_diff_us(last_send_time, now) / 1000;
-                    if (ms >= 500 || last_sent_bpm != 0) {   // sofort 1x + dann alle 500ms
-                        tcp_server_send_bpm(0);
-                        last_sent_bpm  = 0;
-                        last_send_time = now;
-                    }*/
 
                     finger_on_prev = false;
                 } else {
@@ -112,7 +104,6 @@ void servo_mosfet(Servo servos[], Mosfet mosfets[])
                         mosfets_running = false;
                         awaiting_center_after_off = false; // evtl. off-Zentrierung abbrechen
                     }
-                    //servo_set_actuation_enabled(true);
 
                     if (actuation_enabled) {
                     // MOSFETs nach Verzögerung genau einmal starten
@@ -124,7 +115,7 @@ void servo_mosfet(Servo servos[], Mosfet mosfets[])
                             mosfet_start_oscillate_delayed(mosfets, 1, 5000, 500, 0);
 
                             // Dann den dritten nach Delay
-                            mosfet_start_oscillate_delayed(mosfets, 2, 5000, 500, 3000);
+                            mosfet_start_oscillate_delayed(mosfets, 2, 5000, 500, LAST_DELAY_MS);
                             mosfets_running = true;
                         }
                     }
@@ -147,9 +138,6 @@ void servo_mosfet(Servo servos[], Mosfet mosfets[])
                                 bpm_avg = sum_bpm / bpm_count;
 
                                 printf("Herzfrequenz: %.1f BPM\n", bpm_avg);
-                                // Setzt nur das Zieltempo; Schalten macht servo_tick()
-                               // servo_set_bpm(servos, bpm_avg);
-                               // nach servo_set_bpm(servos, bpm_avg);
                                 int bpm_to_send = (int)(bpm_avg + 0.5f);
                                 int32_t ms_since = absolute_time_diff_us(last_send_time, now) / 1000;
                                 if (bpm_to_send != last_sent_bpm || ms_since >= 1000) {
@@ -168,17 +156,6 @@ void servo_mosfet(Servo servos[], Mosfet mosfets[])
             }
         }
     }
-
-    /* --- NEU: verzögertes Zentrieren nach OFF (außerhalb des Sensor-Ifs,
-       damit es zuverlässig passiert, auch wenn gerade keine Samples kommen) --- 
-    if (awaiting_center_after_off) {
-        int32_t ms_since_off = absolute_time_diff_us(mosfets_off_time, get_absolute_time()) / 1000;
-        if (ms_since_off >= STAGGER_OFF_DELAY_MS) {
-            servo_center_all(servos);
-            awaiting_center_after_off = false;
-        }
-    }*/
-
     // MOSFET-State-Maschine stets updaten
     mosfet_update_all(mosfets);
 
