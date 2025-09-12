@@ -29,6 +29,9 @@ static absolute_time_t last_sensor_read;
 static bool actuation_enabled = false;
 void servo_set_actuation_enabled(bool en) { actuation_enabled = en; }
 
+static bool have_data = false;
+void set_have_data(bool en) { have_data = en; }
+
 
 float bpm_avg = 0;
 
@@ -105,7 +108,7 @@ void servo_mosfet(Servo servos[], Mosfet mosfets[])
                         awaiting_center_after_off = false; // evtl. off-Zentrierung abbrechen
                     }
 
-                    if (actuation_enabled) {
+                    if (have_data) {
                     // MOSFETs nach Verzögerung genau einmal starten
                     if (!mosfets_running) {
                         int32_t ms_on = absolute_time_diff_us(finger_on_since, get_absolute_time()) / 1000;
