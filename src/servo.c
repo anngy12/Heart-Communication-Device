@@ -41,7 +41,7 @@ void servo_set_bpm(Servo *servos, float bpm) {
             servos[i].enabled   = true;
             servos[i].last_ts   = now;
             if (servos[i].amplitude <= 0.0f) servos[i].amplitude = 90.0f;
-            if (servos[i].speed_mul <= 0.0f) servos[i].speed_mul = 1.0f; // Default
+            if (servos[i].speed_mul <= 0.0f) servos[i].speed_mul = 2.0f; // Default
             // phase & phase_offset NICHT anfassen -> Phasing bleibt erhalten
         }
     }
@@ -129,6 +129,6 @@ void servo_init_and_default(Servo *servos){
     for (int i = 0; i < SERVO_COUNT; i++) {
     servos[i].speed_mul = 1.0f;   // Default (1 Zyklus pro Schlag)
     }
-    servo_set_speed_multiplier(servos, 0.25f);
+    servo_set_speed_multiplier(servos, 2.0f);
     servo_set_uniform_phase_step(servos, 0.125f); // 45° Versatz pro Kanal     
 }
