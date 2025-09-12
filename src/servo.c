@@ -129,6 +129,6 @@ void servo_init_and_default(Servo *servos){
     for (int i = 0; i < SERVO_COUNT; i++) {
     servos[i].speed_mul = 1.0f;   // Default (1 Zyklus pro Schlag)
     }
-    servo_set_speed_multiplier(servos, 0.25f);
+    servo_set_speed_multiplier(servos, 1.0f);
     servo_set_uniform_phase_step(servos, 0.125f); // 45° Versatz pro Kanal     
 }
