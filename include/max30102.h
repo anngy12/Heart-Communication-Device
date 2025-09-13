@@ -5,6 +5,7 @@
 #include "hardware/i2c.h"
 #include <stdbool.h>
 #include <stdio.h>
+#include <stdint.h>
 
 #define I2C_PORT i2c0
 #define I2C_SDA_PIN 4
