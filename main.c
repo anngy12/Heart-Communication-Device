@@ -11,8 +11,28 @@ int server_ms_since_rx(void);
 
 bool sensor_finger_present(void);
 
+#define I2C_SDA     4
+#define I2C_SCL     5
+
+#define HUSB238_ADDR 0x08
+
+
+// --- I2C HUSB238 Setup ---
+void setup_husb238_max_power() {
+    i2c_init(i2c0, 100 * 1000);
+    gpio_set_function(I2C_SDA, GPIO_FUNC_I2C);
+    gpio_set_function(I2C_SCL, GPIO_FUNC_I2C);
+    gpio_pull_up(I2C_SDA);
+    gpio_pull_up(I2C_SCL);
+
+    uint8_t buf[3] = {0x30, 0x14, 0x05}; // max Power Beispiel
+    i2c_write_blocking(i2c0, HUSB238_ADDR, buf, 3, false);
+}
 
 int main(){
+
+    setup_husb238_max_power();
+    
     stdio_init_all();
 
     init_wifi();
