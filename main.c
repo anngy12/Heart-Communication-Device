@@ -1,6 +1,6 @@
 #include "mosfet.h"
 #include "servo.h"
-#include "led.h"
+#include "include/led.h"
 #include "exe_servo_mosfet.h"
 #include "include/clientTCP.h"
 
@@ -16,6 +16,8 @@ bool sensor_finger_present(void);
 
 int main(){
     stdio_init_all();
+
+    init_led();
 
     init_client_wifi();
     printf("Client läuft...\n");
@@ -45,13 +47,14 @@ int main(){
 
     if (!(have_recent_data && finger_on)) {
             servo_center_all(servos);            // alle auf 0° und disabled
-            servo_set_actuation_enabled(false);  // kein servo_tick() mehr
+            servo_set_actuation_enabled(false);// kein servo_tick() mehr
+            led_off();  
         } else {
             // bei aktiven Daten sicherstellen, dass Bewegung erlaubt ist
             servo_set_actuation_enabled(true);
         }
-    if(have_recent_data)
-    led_on;
+        if(have_recent_data);
+        led_on();
 
     // WICHTIG: immer laufen lassen -> misst & sendet auch ohne Empfang
     servo_mosfet(servos, mosfets);

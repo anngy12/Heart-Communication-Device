@@ -42,7 +42,8 @@ add_executable(max30102_test
     src/max30102.c
     src/mosfet.c
     src/serverTCP.c
-    src/servo.c)
+    src/servo.c
+    src/led.c)
 
 pico_set_program_name(max30102_test "max30102_test")
 pico_set_program_version(max30102_test "0.1")
