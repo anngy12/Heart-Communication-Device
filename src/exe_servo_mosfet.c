@@ -108,22 +108,6 @@ void servo_mosfet(Servo servos[], Mosfet mosfets[])
                         awaiting_center_after_off = false; // evtl. off-Zentrierung abbrechen
                     }
 
-                    if (have_data) {
-                    // MOSFETs nach Verzögerung genau einmal starten
-                    if (!mosfets_running) {
-                        int32_t ms_on = absolute_time_diff_us(finger_on_since, get_absolute_time()) / 1000;
-                        if (ms_on >= STAGGER_ON_DELAY_MS) {
-                            // Erst die ersten zwei gleichzeitig
-                            mosfet_start_oscillate_delayed(mosfets, 0, 5000, 500, 0);
-                            mosfet_start_oscillate_delayed(mosfets, 1, 5000, 500, 0);
-
-                            // Dann den dritten nach Delay
-                            mosfet_start_oscillate_delayed(mosfets, 2, 5000, 500, LAST_DELAY_MS);
-                            mosfets_running = true;
-                        }
-                    }
-                }
-
                     // Peak-Detektion / BPM
                     bool curr_above_avg = ir > ir_avg;
                     if (curr_above_avg && !prev_above_avg) {
@@ -159,6 +143,25 @@ void servo_mosfet(Servo servos[], Mosfet mosfets[])
             }
         }
     }
+
+
+    if (actuation_enabled) {
+        if (!mosfets_running) {
+            // MOSFETs starten (0 + 1 sofort, 2 nach Delay)
+            printf("Mosfets running");
+            mosfet_start_oscillate_delayed(mosfets, 0, 5000, 500, 0);
+            mosfet_start_oscillate_delayed(mosfets, 1, 5000, 500, 0);
+            mosfet_start_oscillate_delayed(mosfets, 2, 5000, 500, LAST_DELAY_MS);
+            mosfets_running = true;
+        }
+    } else {
+        if (mosfets_running) {
+            // Stoppe alle MOSFETs wenn keine Daten mehr
+            for (int i = 0; i < MOSFET_COUNT; i++) mosfet_stop(mosfets, i);
+            mosfets_running = false;
+        }
+    }
+
     // MOSFET-State-Maschine stets updaten
     mosfet_update_all(mosfets);
 
